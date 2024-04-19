@@ -77,6 +77,13 @@ nav_msgs::Path path;
 nav_msgs::Odometry odomAftMapped;
 geometry_msgs::PoseStamped msg_body_pose;
 
+// Frame names
+string init_frame;
+/* string init_frame = "point_lio_init"; */
+/* string odom_frame = "odom"; */
+string odom_frame;
+
+
 void SigHandle(int sig)
 {
     flg_exit = true;
@@ -564,7 +571,7 @@ void publish_init_kdtree(const ros::Publisher & pubLaserCloudFullRes)
     pcl::toROSMsg(*laserCloudInit, laserCloudmsg);
         
     laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
-    laserCloudmsg.header.frame_id = "camera_init";
+    laserCloudmsg.header.frame_id = init_frame;
     pubLaserCloudFullRes.publish(laserCloudmsg);
 
 }
@@ -594,7 +601,7 @@ void publish_frame_world(const ros::Publisher & pubLaserCloudFullRes)
         pcl::toROSMsg(*laserCloudWorld, laserCloudmsg);
         
         laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
-        laserCloudmsg.header.frame_id = "camera_init";
+        laserCloudmsg.header.frame_id = init_frame;
         pubLaserCloudFullRes.publish(laserCloudmsg);
         publish_count -= PUBFRAME_PERIOD;
     }
@@ -680,8 +687,8 @@ void set_posestamp(T & out)
 
 void publish_odometry(const ros::Publisher & pubOdomAftMapped)
 {
-    odomAftMapped.header.frame_id = "camera_init";
-    odomAftMapped.child_frame_id = "aft_mapped";
+    odomAftMapped.header.frame_id = init_frame;
+    odomAftMapped.child_frame_id = odom_frame;
     if (publish_odometry_without_downsample)
     {
         odomAftMapped.header.stamp = ros::Time().fromSec(time_current);
@@ -705,7 +712,7 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
     q.setY(odomAftMapped.pose.pose.orientation.y);
     q.setZ(odomAftMapped.pose.pose.orientation.z);
     transform.setRotation( q );
-    br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "camera_init", "aft_mapped" ) );
+    br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, init_frame, odom_frame ) );
 }
 
 void publish_path(const ros::Publisher pubPath)
@@ -713,7 +720,7 @@ void publish_path(const ros::Publisher pubPath)
     set_posestamp(msg_body_pose.pose);
     // msg_body_pose.header.stamp = ros::Time::now();
     msg_body_pose.header.stamp = ros::Time().fromSec(lidar_end_time);
-    msg_body_pose.header.frame_id = "camera_init";
+    msg_body_pose.header.frame_id = init_frame;
     static int jjj = 0;
     jjj++;
     // if (jjj % 2 == 0) // if path is too large, the rvis will crash
@@ -729,10 +736,11 @@ int main(int argc, char** argv)
     ros::NodeHandle nh("~");
     readParameters(nh);
     cout<<"lidar_type: "<<lidar_type<<endl;
-    
+    init_frame = uav_name + "/" + "point_lio_init";
+    odom_frame = uav_name + "/" + "odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
-    path.header.frame_id ="camera_init";
-
+    path.header.frame_id = init_frame;
+    cout<<init_frame + "and " + odom_frame<<endl;
     /*** variables definition for counting ***/
     int frame_num = 0;
     double aver_time_consu = 0, aver_time_icp = 0, aver_time_match = 0, aver_time_incre = 0, aver_time_solve = 0, aver_time_propag = 0;
