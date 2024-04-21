@@ -327,7 +327,7 @@ int main(int argc, char** argv)
     ivox_ = std::make_shared<IVoxType>(ivox_options_);
     
     init_frame = uav_name + "/point_lio_init";
-    odom_frame = uav_name + "/odom";
+    odom_frame = uav_name + "/point_lio_odom";
 
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id =init_frame;
