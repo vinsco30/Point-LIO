@@ -39,6 +39,7 @@ double lidar_time_inte = 0.1, first_imu_time = 0.0;
 int cut_frame_num = 1, orig_odom_freq = 10;
 double online_refine_time = 20.0; //unit: s
 bool cut_frame_init = true;
+std::string uav_name;
 
 MeasureGroup Measures;
 
@@ -100,6 +101,7 @@ void readParameters(ros::NodeHandle &nh)
   nh.param<bool>("runtime_pos_log_enable", runtime_pos_log, 0);
   nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
   nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
+  nh.param<std::string>("uav_name", uav_name, "");
 
   nh.param<double>("mapping/lidar_time_inte",lidar_time_inte,0.1);
   nh.param<double>("mapping/lidar_meas_cov",laser_point_cov,0.1);

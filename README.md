@@ -2,14 +2,6 @@
 ## Point-LIO: Robust High-Bandwidth Lidar-Inertial Odometry
 
 ## 1. Introduction
-
-<div align="center">
-    <div align="center">
-        <img src="https://github.com/hku-mars/Point-LIO/raw/master/image/toc4.png" width = 75% >
-    </div>
-    <font color=#a0a0a0 size=2>The framework and key points of the Point-LIO.</font>
-</div>
-
 **Point-LIO** is a robust and high-bandwidth LiDAR-inertial odometry with the capability to estimate extremely aggressive robotic motions. Point-LIO has two key novelties that enable a high-bandwidth LiDAR-inertial odometry (LIO). The first one is a point-by-point LIO framework, where the state is updated at each LiDAR point measurement without accumulating them into a frame. This point-by-point update allows an extremely high-frequency odometry output, significantly increases the odometry bandwidth, and also fundamentally removes the artificial in-frame motion distortion in aggressive motions. The second main novelty is a stochastic process-augmented kinematic model which models the IMU measurements as an output, instead of input as in existing filter-based odometry or SLAM systems, of the model. This new modeling method enables accurate localization and reliable mapping for aggressive motions even when IMU measurements are saturated. In experiments, Point-LIO is able to provide accurate, high-frequency odometry (4-8 kHz) and reliable mapping under severe vibrations and aggressive motions with high angular velocity (75 rad s^{-1}) beyond the IMU measuring ranges. And Point-LIO is computationally efficient, robust, versatile on public datasets with general motions. As an odometry, Point-LIO could be used in various autonomous tasks, such as trajectory planning, control, and perception, especially in cases involving very fast ego-motions (e.g., in the presence of severe vibration and high angular or linear velocity) or requiring high-rate odometry output and mapping (e.g., for high-rate feedback control and perception).
 
 ## **1.1. Developers:**
@@ -19,13 +11,6 @@ The codes of this repo are contributed by:
 
 ## **1.2. Related paper**
 Our paper is accepted to Advanced Intelligent Systems(AIS), and is in the process of production. The preprint version is attached here, [Point-LIO_preprint.pdf](https://github.com/hku-mars/Point-LIO/files/10989136/Point-LIO_preprint.pdf)
-
-
-## **1.3. Related video**
-Our accompany video is available on **YouTube**.
-<div align="center">
-    <a href="https://youtu.be/oS83xUs42Uw" target="_blank"><img src="https://github.com/hku-mars/Point-LIO/raw/master/image/final.png" width=60% /></a>
-</div>
 
 ## 2. What can Point-LIO do?
 ### 2.1 Simultaneous LiDAR localization and mapping (SLAM) without motion distortion
@@ -153,22 +138,3 @@ Set ``` pcd_save_enable ``` in launchfile to ``` 1 ```. All the scans (in global
     4 is Z values
     5 is intensity
 ```
-
-# **6. Examples**
-
-## **6.1. Example-1: SLAM on datasets with aggressive motions where IMU is saturated**
-<div align="center">
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example1.gif"  width="40%" />
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example2.gif"  width="54%" />
-</div>
-
-## **6.2. Example-2: Application on FPV and PULSAR**
-<div align="center">
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example3.gif"  width="58%" />
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example4.gif"  width="35%" />
-</div>
-
-PULSAR is a self-rotating actuated by only one motor, [PULSAR](https://github.com/hku-mars/PULSAR)
-
-## 7. Contact us
-If you have any questions about this work, please feel free to contact me <hdj65822ATconnect.hku.hk> and Dr. Fu Zhang <fuzhangAThku.hk> via email.
