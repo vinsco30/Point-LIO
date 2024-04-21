@@ -74,7 +74,7 @@ Visualization Manager:
       Length: 0.699999988079071
       Name: Axes
       Radius: 0.05999999865889549
-      Reference Frame: camera_init
+      Reference Frame: uav49/point_lio_init
       Show Trail: false
       Value: true
     - Class: rviz/Group
@@ -102,7 +102,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.05000000074505806
           Style: Points
-          Topic: /uav49/cloud_registered
+          Topic: /uav49/point_lio/cloud_registered
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -130,7 +130,7 @@ Visualization Manager:
           Size (Pixels): 1
           Size (m): 0.009999999776482582
           Style: Points
-          Topic: /uav49/cloud_registered
+          Topic: /uav49/point_lio/cloud_registered
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -158,7 +158,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.10000000149011612
           Style: Flat Squares
-          Topic: /uav49/Laser_map
+          Topic: /uav49/point_lio/Laser_map
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -199,7 +199,7 @@ Visualization Manager:
             Shaft Length: 0.05000000074505806
             Shaft Radius: 0.05000000074505806
             Value: Axes
-          Topic: /uav49/aft_mapped_to_init
+          Topic: /uav49/point_lio/odom
           Unreliable: false
           Value: true
       Enabled: true
@@ -234,7 +234,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.4000000059604645
       Shaft Length: 0.4000000059604645
-      Topic: /uav49/path
+      Topic: /uav49/point_lio/path
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -262,7 +262,7 @@ Visualization Manager:
       Size (Pixels): 4
       Size (m): 0.30000001192092896
       Style: Spheres
-      Topic: /uav49/cloud_effected
+      Topic: /uav49/point_lio/cloud_effected
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -290,7 +290,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.10000000149011612
       Style: Flat Squares
-      Topic: /uav49/Laser_map
+      Topic: /uav49/point_lio/Laser_map
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -342,7 +342,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: camera_init
+    Fixed Frame: uav49/point_lio_init
     Frame Rate: 10
   Name: root
   Tools:

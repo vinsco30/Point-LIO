@@ -79,8 +79,6 @@ geometry_msgs::PoseStamped msg_body_pose;
 
 // Frame names
 string init_frame;
-/* string init_frame = "point_lio_init"; */
-/* string odom_frame = "odom"; */
 string odom_frame;
 
 
@@ -740,7 +738,6 @@ int main(int argc, char** argv)
     odom_frame = uav_name + "/" + "odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id = init_frame;
-    cout<<init_frame + "and " + odom_frame<<endl;
     /*** variables definition for counting ***/
     int frame_num = 0;
     double aver_time_consu = 0, aver_time_icp = 0, aver_time_match = 0, aver_time_incre = 0, aver_time_solve = 0, aver_time_propag = 0;
