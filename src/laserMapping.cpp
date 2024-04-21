@@ -735,7 +735,7 @@ int main(int argc, char** argv)
     readParameters(nh);
     cout<<"lidar_type: "<<lidar_type<<endl;
     init_frame = uav_name + "/" + "point_lio_init";
-    odom_frame = uav_name + "/" + "odom";
+    odom_frame = uav_name + "/" + "point_lio_odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id = init_frame;
     /*** variables definition for counting ***/
