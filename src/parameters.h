@@ -8,7 +8,7 @@
 #include "preprocess.h"
 #include "IMU_Processing.h"
 #include <sensor_msgs/NavSatFix.h>
-#include <livox_ros_driver/CustomMsg.h>
+#include <livox_ros_driver2/CustomMsg.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <mutex>
 #include <omp.h>
@@ -63,6 +63,7 @@ extern bool   scan_pub_en, scan_body_pub_en;
 extern shared_ptr<Preprocess> p_pre;
 extern shared_ptr<ImuProcess> p_imu;
 extern bool is_first_frame;
+extern std::string uav_name;
 
 extern std::vector<double> extrinT;
 extern std::vector<double> extrinR;
