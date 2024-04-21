@@ -29,13 +29,13 @@
       <remap from="/livox/imu" to="$(arg node_prefix)livox/imu" />
 
         <!-- publishers -->
-      <remap from="/cloud_registered" to="$(arg node_prefix)cloud_registered" />
-      <remap from="/cloud_registered_body" to="$(arg node_prefix)cloud_registered_body" />
-      <remap from="/cloud_effected" to="$(arg node_prefix)cloud_effected" />
-      <remap from="/Laser_map" to="$(arg node_prefix)Laser_map" />
-      <remap from="/aft_mapped_to_init" to="$(arg node_prefix)aft_mapped_to_init" />
-      <remap from="/path" to="$(arg node_prefix)path" />
-      <remap from="/planner_normal" to="$(arg node_prefix)planner_normal" />
+      <remap from="/cloud_registered" to="$(arg node_prefix)point_lio/cloud_registered" />
+      <remap from="/cloud_registered_body" to="$(arg node_prefix)point_lio/cloud_registered_body" />
+      <remap from="/cloud_effected" to="$(arg node_prefix)point_lio/cloud_effected" />
+      <remap from="/Laser_map" to="$(arg node_prefix)point_lio/Laser_map" />
+      <remap from="/aft_mapped_to_init" to="$(arg node_prefix)point_lio/odom" />
+      <remap from="/path" to="$(arg node_prefix)point_lio/path" />
+      <remap from="/planner_normal" to="$(arg node_prefix)point_lio/planner_normal" />
   
     </node>
   
