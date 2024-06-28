@@ -3,7 +3,6 @@
 
   <arg name="UAV_NAME"    default="$(env UAV_NAME)" />
   <arg name="rviz"        default="false" />
-  <arg name="node_prefix" default="" />
 
   <group ns="$(arg UAV_NAME)">
 
@@ -26,18 +25,19 @@
       <param name="filter_size_surf"       type="double" value="0.3" /> <!--0.5, 0.3, 0.2, 0.15, 0.1--> 
       <param name="filter_size_map"        type="double" value="0.2" /> <!--0.5, 0.3, 0.15, 0.1-->
       
-        <!-- subscribers -->
-      <remap from="/livox/lidar" to="$(arg node_prefix)livox/lidar" />
-      <remap from="/livox/imu" to="$(arg node_prefix)livox/imu" />
+      <!-- subscribers -->
+      <!-- ======================= subscribers ====================== -->
+      <remap from="/livox/lidar" to="livox/lidar" />
+      <remap from="/livox/imu" to="livox/imu" />
 
-        <!-- publishers -->
-      <remap from="/cloud_registered" to="$(arg node_prefix)cloud_registered" />
-      <remap from="/cloud_registered_body" to="$(arg node_prefix)cloud_registered_body" />
-      <remap from="/cloud_effected" to="$(arg node_prefix)cloud_effected" />
-      <remap from="/Laser_map" to="$(arg node_prefix)laser_map" />
-      <remap from="/aft_mapped_to_init" to="$(arg node_prefix)odom" />
-      <remap from="/path" to="$(arg node_prefix)path" />
-      <remap from="/planner_normal" to="$(arg node_prefix)planner_normal" />
+      <!-- ======================= publishers ======================= -->
+      <remap from="/cloud_registered" to="~cloud_registered" />
+      <remap from="/cloud_registered_body" to="~cloud_registered_body" />
+      <remap from="/cloud_effected" to="~cloud_effected" />
+      <remap from="/Laser_map" to="~laser_map" />
+      <remap from="/aft_mapped_to_init" to="~odom" />
+      <remap from="/path" to="~path" />
+      <remap from="/planner_normal" to="~planner_normal" />
   
     </node>
   
