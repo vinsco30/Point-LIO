@@ -386,16 +386,16 @@ int main(int argc, char** argv)
             ("/cloud_registered", 1000);
     ros::Publisher pubLaserCloudFullRes_body = nh.advertise<sensor_msgs::PointCloud2>
             ("/cloud_registered_body", 1000);
-    ros::Publisher pubLaserCloudEffect  = nh.advertise<sensor_msgs::PointCloud2>
-            ("/cloud_effected", 1000);
+    // ros::Publisher pubLaserCloudEffect  = nh.advertise<sensor_msgs::PointCloud2>
+            // ("/cloud_effected", 1000);
     ros::Publisher pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>
             ("/Laser_map", 1000);
     ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry> 
             ("/aft_mapped_to_init", 1000);
     ros::Publisher pubPath          = nh.advertise<nav_msgs::Path> 
             ("/path", 1000);
-    ros::Publisher plane_pub = nh.advertise<visualization_msgs::Marker>
-            ("/planner_normal", 1000);
+    // ros::Publisher plane_pub = nh.advertise<visualization_msgs::Marker>
+            // ("/planner_normal", 1000);
 //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
     ros::Rate loop_rate(500);
@@ -467,13 +467,14 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    kf_input.x_.gravity << VEC_FROM_ARRAY(gravity_init);
-                    kf_output.x_.gravity << VEC_FROM_ARRAY(gravity_init);
-                    kf_output.x_.acc << VEC_FROM_ARRAY(gravity_init);
+                    kf_input.x_.gravity << VEC_FROM_ARRAY(gravity); // _init);
+                    kf_output.x_.gravity << VEC_FROM_ARRAY(gravity); //_init);
+                    kf_output.x_.acc << VEC_FROM_ARRAY(gravity); //_init);
                     kf_output.x_.acc *= -1; 
                     p_imu->imu_need_init_ = false;
                     // p_imu->after_imu_init_ = true;
-                }        
+                }     
+                G_m_s2 = std::sqrt(gravity[0] * gravity[0] + gravity[1] * gravity[1] + gravity[2] * gravity[2]);
             }
 
             double t0,t1,t2,t3,t4,t5,match_start, solve_start;
@@ -501,21 +502,21 @@ int main(int argc, char** argv)
                 time_seq = time_compressing<int>(feats_down_body);
                 feats_down_size = feats_down_body->points.size();
             }
-         
-            if (!p_imu->after_imu_init_)
+
+            if (!p_imu->after_imu_init_) // !p_imu->UseLIInit && 
             {
                 if (!p_imu->imu_need_init_)
                 { 
                     V3D tmp_gravity;
                     if (imu_en)
-                    {tmp_gravity = - p_imu->mean_acc / acc_norm * G_m_s2;}
+                    {tmp_gravity = - p_imu->mean_acc / p_imu->mean_acc.norm() * G_m_s2;}
                     else
                     {tmp_gravity << VEC_FROM_ARRAY(gravity_init);
                     p_imu->after_imu_init_ = true;
                     }
                     // V3D tmp_gravity << VEC_FROM_ARRAY(gravity_init);
                     M3D rot_init;
-                    p_imu->Set_init(tmp_gravity, rot_init);  
+                    p_imu->Set_init(tmp_gravity, rot_init);
                     kf_input.x_.rot = rot_init;
                     kf_output.x_.rot = rot_init;
                     // kf_input.x_.rot; //.normalize();
@@ -792,7 +793,7 @@ int main(int argc, char** argv)
 
                         angvel_avr<<imu_next.angular_velocity.x, imu_next.angular_velocity.y, imu_next.angular_velocity.z;
                         acc_avr   <<imu_next.linear_acceleration.x, imu_next.linear_acceleration.y, imu_next.linear_acceleration.z; 
-                        acc_avr_norm = acc_avr * G_m_s2 / acc_norm;
+                        // acc_avr_norm = acc_avr * G_m_s2 / acc_norm;
                         kf_output.update_iterated_dyn_share_IMU();
                         imu_deque.pop_front();
                         if (imu_deque.empty()) break;
@@ -1045,11 +1046,13 @@ int main(int argc, char** argv)
                 {
                     if (!use_imu_as_input)
                     {
+                        euler_cur = SO3ToEuler(kf_output.x_.rot);
                         fout_out << setw(20) << Measures.lidar_beg_time - first_lidar_time << " " << euler_cur.transpose() << " " << kf_output.x_.pos.transpose() << " " << kf_output.x_.vel.transpose() \
                         <<" "<<kf_output.x_.omg.transpose()<<" "<<kf_output.x_.acc.transpose()<<" "<<kf_output.x_.gravity.transpose()<<" "<<kf_output.x_.bg.transpose()<<" "<<kf_output.x_.ba.transpose()<<" "<<feats_undistort->points.size()<<endl;
                     }
                     else
                     {
+                        euler_cur = SO3ToEuler(kf_input.x_.rot);
                         fout_out << setw(20) << Measures.lidar_beg_time - first_lidar_time << " " << euler_cur.transpose() << " " << kf_input.x_.pos.transpose() << " " << kf_input.x_.vel.transpose() \
                         <<" "<<kf_input.x_.bg.transpose()<<" "<<kf_input.x_.ba.transpose()<<" "<<kf_input.x_.gravity.transpose()<<" "<<feats_undistort->points.size()<<endl;
                     }

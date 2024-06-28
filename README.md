@@ -1,8 +1,42 @@
 # Point-LIO
 ## Point-LIO: Robust High-Bandwidth Lidar-Inertial Odometry
-
+# Point-LIO
 ## 1. Introduction
-**Point-LIO** is a robust and high-bandwidth LiDAR-inertial odometry with the capability to estimate extremely aggressive robotic motions. Point-LIO has two key novelties that enable a high-bandwidth LiDAR-inertial odometry (LIO). The first one is a point-by-point LIO framework, where the state is updated at each LiDAR point measurement without accumulating them into a frame. This point-by-point update allows an extremely high-frequency odometry output, significantly increases the odometry bandwidth, and also fundamentally removes the artificial in-frame motion distortion in aggressive motions. The second main novelty is a stochastic process-augmented kinematic model which models the IMU measurements as an output, instead of input as in existing filter-based odometry or SLAM systems, of the model. This new modeling method enables accurate localization and reliable mapping for aggressive motions even when IMU measurements are saturated. In experiments, Point-LIO is able to provide accurate, high-frequency odometry (4-8 kHz) and reliable mapping under severe vibrations and aggressive motions with high angular velocity (75 rad s^{-1}) beyond the IMU measuring ranges. And Point-LIO is computationally efficient, robust, versatile on public datasets with general motions. As an odometry, Point-LIO could be used in various autonomous tasks, such as trajectory planning, control, and perception, especially in cases involving very fast ego-motions (e.g., in the presence of severe vibration and high angular or linear velocity) or requiring high-rate odometry output and mapping (e.g., for high-rate feedback control and perception).
+
+<div align="center">
+    <div align="center">
+        <img src="https://github.com/hku-mars/Point-LIO/raw/master/image/toc4.png" width = 75% >
+    </div>
+    <font color=#a0a0a0 size=2>The framework and key points of the Point-LIO.</font>
+</div>
+
+**New features:**
+1. would not fly under degeneration.
+2. high odometry output frequency, 4k-8kHz.
+3. robust to IMU saturation and severe vibration, and other aggressive motions (75 rad/s in our test).
+4. no motion distortion.
+5. computationally efficient, robust, versatile on public datasets with general motions. 
+6. As an odometry, Point-LIO could be used in various autonomous tasks, such as trajectory planning, control, and perception, especially in cases involving very fast ego-motions (e.g., in the presence of severe vibration and high angular or linear velocity) or requiring high-rate odometry output and mapping (e.g., for high-rate feedback control and perception).
+
+**Important notes:**
+
+A. Please make sure the IMU and LiDAR are **Synchronized**, that's important.
+
+B. Please obtain the saturation values of your used IMU (i.e., accelerator and gyroscope), and the units of the accelerator of your used IMU, then modify the .yaml file according to those settings, including values of 'satu_acc', 'satu_gyro', 'acc_norm'. That's improtant.
+
+C. The warning message "Failed to find match for field 'time'." means the timestamps of each LiDAR points are missed in the rosbag file. That is important because Point-LIO processes at the sampling time of each LiDAR point.
+
+D. We recommend to set the **extrinsic_est_en** to false if the extrinsic is given. As for the extrinsic initiallization, please refer to our recent work: [**Robust and Online LiDAR-inertial Initialization**](https://github.com/hku-mars/LiDAR_IMU_Init).
+
+E. If a high odometry output frequency without downsample is required, set ``` publish_odometry_without_downsample ``` as true. Then the warning message of tf "TF_REPEATED_DATA" will pop up in the terminal window, because the time interval between two publish odometery is too small. The following command could be used to suppress this warning to a smaller frequency:
+
+in your catkin_ws/src,
+
+git clone --branch throttle-tf-repeated-data-error git@github.com:BadgerTechnologies/geometry2.git
+
+Then rebuild, source setup.bash, run and then it should be reduced down to once every 10 seconds. If 10 seconds is still too much log output then change the ros::Duration(10.0) to 10000 seconds or whatever you like.
+
+F. If you want to use Point-LIO without imu, set the "imu_en" as false, and provide a predefined value of gavity in "gravity_init" as true as possible in the yaml file, and keep the "use_imu_as_input" as 0.
 
 ## **1.1. Developers:**
 The codes of this repo are contributed by:
@@ -10,7 +44,7 @@ The codes of this repo are contributed by:
 
 
 ## **1.2. Related paper**
-Our paper is accepted to Advanced Intelligent Systems(AIS), and is in the process of production. The preprint version is attached here, [Point-LIO_preprint.pdf](https://github.com/hku-mars/Point-LIO/files/10989136/Point-LIO_preprint.pdf)
+Our paper is published on Advanced Intelligent Systems(AIS). [Point-LIO](https://onlinelibrary.wiley.com/doi/epdf/10.1002/aisy.202200459), DOI: 10.1002/aisy.202200459
 
 ## 2. What can Point-LIO do?
 ### 2.1 Simultaneous LiDAR localization and mapping (SLAM) without motion distortion
@@ -22,7 +56,7 @@ Our paper is accepted to Advanced Intelligent Systems(AIS), and is in the proces
 # **3. Prerequisites**
 
 ## **3.1 Ubuntu and [ROS](https://www.ros.org/)**
-We tested our code on Ubuntu18.04 with ros melodic and Ubuntu20.04 with noetic. Additional ROS package is required:
+We tested our code on Ubuntu20.04 with noetic. Ubuntu18.04 and lower versions have problems of environments to support the Point-LIO, try to avoid using Point-LIO in those systems. Additional ROS package is required:
 ```
 sudo apt-get install ros-xxx-pcl-conversions
 ```
@@ -57,23 +91,6 @@ Clone the repository and catkin_make:
 ```export PCL_ROOT={CUSTOM_PCL_PATH}```
 
 ## 5. Directly run
-Important notes:
-
-A. Please make sure the IMU and LiDAR are **Synchronized**, that's important.
-
-B. Please obtain the saturation values of your used IMU (i.e., accelerator and gyroscope), and the units of the accelerator of your used IMU, then modify the .yaml file according to those settings. That's improtant.
-
-C. The warning message "Failed to find match for field 'time'." means the timestamps of each LiDAR points are missed in the rosbag file. That is important because Point-LIO processes at the sampling time of each LiDAR point.
-
-D. We recommend to set the **extrinsic_est_en** to false if the extrinsic is give. As for the extrinsic initiallization, please refer to our recent work: [**Robust and Online LiDAR-inertial Initialization**](https://github.com/hku-mars/LiDAR_IMU_Init).
-
-E. If a high odometry output frequency without downsample is required, set ``` publish_odometry_without_downsample ``` as true. Then the warning message of tf "TF_REPEATED_DATA" will pop up in the terminal window, because the time interval between two publish odometery is too small. The following command could be used to suppress this warning to a smaller frequency:
-
-in your catkin_ws/src,
-
-git clone --branch throttle-tf-repeated-data-error git@github.com:BadgerTechnologies/geometry2.git
-
-Then rebuild, source setup.bash, run and then it should be reduced down to once every 10 seconds. If 10 seconds is still too much log output then change the ros::Duration(10.0) to 10000 seconds or whatever you like.
 
 ### 5.1 For Avia
 Connect to your PC to Livox Avia LiDAR by following  [Livox-ros-driver installation](https://github.com/Livox-SDK/livox_ros_driver), then
@@ -138,3 +155,23 @@ Set ``` pcd_save_enable ``` in launchfile to ``` 1 ```. All the scans (in global
     4 is Z values
     5 is intensity
 ```
+# **6. Examples**
+
+The example datasets could be downloaded through [onedrive](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/hdj65822_connect_hku_hk/EmRJYy4ZfAlMiIJ786ogCPoBcGQ2BAchuXjE5oJQjrQu0Q?e=igu44W). Pay attention that if you want to test on racing_drone.bag, [0.0, 9.810, 0.0] should be input in 'mapping/gravity_init' in avia.yaml, and set the 'start_in_aggressive_motion' as true in the yaml. Because this bag start from a high speed motion. And for PULSAR.bag, we change the measuring range of the gyroscope of the built-in IMU to 17.5 rad/s. Therefore, when you test on this bag, please change 'satu_gyro' to 17.5 in avia.yaml.
+
+## **6.1. Example-1: SLAM on datasets with aggressive motions where IMU is saturated**
+<div align="center">
+<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example1.gif"  width="40%" />
+<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example2.gif"  width="54%" />
+</div>
+
+## **6.2. Example-2: Application on FPV and PULSAR**
+<div align="center">
+<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example3.gif"  width="58%" />
+<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example4.gif"  width="35%" />
+</div>
+
+PULSAR is a self-rotating UAV actuated by only one motor, [PULSAR](https://github.com/hku-mars/PULSAR)
+
+## 7. Contact us
+If you have any questions about this work, please feel free to contact me <hdj65822ATconnect.hku.hk> and Dr. Fu Zhang <fuzhangAThku.hk> via email.

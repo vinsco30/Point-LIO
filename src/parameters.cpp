@@ -43,7 +43,7 @@ std::string uav_name;
 
 MeasureGroup Measures;
 
-ofstream fout_out, fout_imu_pbp, fout_rtk;
+ofstream fout_out, fout_imu_pbp;
 
 void readParameters(ros::NodeHandle &nh)
 {
