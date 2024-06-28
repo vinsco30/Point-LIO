@@ -46,8 +46,8 @@ odometry:
     publish_odometry_without_downsample: false
 
 publish:
-    path_en: true                 # false: close the path output
-    scan_publish_en: true         # false: close all the point cloud output
+    path_en: true                # false: close the path output
+    scan_publish_en: true        # false: close all the point cloud output
     scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
 
 pcd_save:
