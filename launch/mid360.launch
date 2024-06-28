@@ -10,6 +10,11 @@
   <arg name="node_name"      default="point_lio" />
   <arg name="name_postfix"   default="" />
 
+  <!-- Debug? -->
+  <arg     if="$(arg debug)" name="launch_prefix" value="valgrind --tool=callgrind" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+
+  <!-- Standalone? -->
   <arg if="$(eval arg('standalone') or arg('debug'))" name="nodelet" value="standalone" />
   <arg if="$(eval arg('standalone') or arg('debug'))" name="nodelet_manager" value="" />
 
