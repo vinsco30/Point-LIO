@@ -1,19 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(point_lio)
 
-SET(CMAKE_BUILD_TYPE "Release")
-
-ADD_COMPILE_OPTIONS(-std=c++14 )
-ADD_COMPILE_OPTIONS(-std=c++14 )
-set( CMAKE_CXX_FLAGS "-std=c++14 -O3" ) 
-
 add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexceptions" )
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -std=c++0x -std=c++14 -fexceptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread -std=c++0x -std=c++17 -fexceptions")
 
 message("Current CPU archtecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)" )
@@ -64,10 +58,11 @@ message(Eigen: ${EIGEN3_INCLUDE_DIR})
 
 include_directories(
 	${catkin_INCLUDE_DIRS} 
-  ${EIGEN3_INCLUDE_DIR}
-  ${PCL_INCLUDE_DIRS}
-  ${PYTHON_INCLUDE_DIRS}
-  include)
+	${EIGEN3_INCLUDE_DIR}
+	${PCL_INCLUDE_DIRS}
+	${PYTHON_INCLUDE_DIRS}
+	include
+)
 
 link_directories(
 	include
@@ -85,11 +80,13 @@ catkin_package(
   INCLUDE_DIRS
 )
 
-add_executable(pointlio_mapping src/laserMapping.cpp 
-                src/li_initialization.cpp src/parameters.cpp src/preprocess.cpp src/Estimator.cpp 
-                src/IMU_Processing.cpp)
+add_executable(pointlio_mapping
+       	src/laserMapping.cpp 
+	src/li_initialization.cpp
+       	src/parameters.cpp
+       	src/preprocess.cpp
+       	src/Estimator.cpp 
+	src/IMU_Processing.cpp
+)
 target_link_libraries(pointlio_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pointlio_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
-
-
-
