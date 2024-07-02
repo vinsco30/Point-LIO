@@ -22,7 +22,7 @@
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/Vector3.h>
-#include <livox_ros_driver/CustomMsg.h>
+#include <livox_ros_driver2/CustomMsg.h>
 #include "parameters.h"
 #include "Estimator.h"
 // #include <ros/console.h>
@@ -76,6 +76,11 @@ sensor_msgs::Imu::ConstPtr imu_last_ptr;
 nav_msgs::Path path;
 nav_msgs::Odometry odomAftMapped;
 geometry_msgs::PoseStamped msg_body_pose;
+
+// Frame names
+string init_frame;
+string odom_frame;
+
 
 void SigHandle(int sig)
 {
@@ -293,7 +298,7 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     sig_buffer.notify_all();
 }
 
-void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg) 
+void livox_pcl_cbk(const livox_ros_driver2::CustomMsg::ConstPtr &msg) 
 {
     mtx_buffer.lock();
     double preprocess_start_time = omp_get_wtime();
@@ -564,7 +569,7 @@ void publish_init_kdtree(const ros::Publisher & pubLaserCloudFullRes)
     pcl::toROSMsg(*laserCloudInit, laserCloudmsg);
         
     laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
-    laserCloudmsg.header.frame_id = "camera_init";
+    laserCloudmsg.header.frame_id = init_frame;
     pubLaserCloudFullRes.publish(laserCloudmsg);
 
 }
@@ -594,7 +599,7 @@ void publish_frame_world(const ros::Publisher & pubLaserCloudFullRes)
         pcl::toROSMsg(*laserCloudWorld, laserCloudmsg);
         
         laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
-        laserCloudmsg.header.frame_id = "camera_init";
+        laserCloudmsg.header.frame_id = init_frame;
         pubLaserCloudFullRes.publish(laserCloudmsg);
         publish_count -= PUBFRAME_PERIOD;
     }
@@ -680,8 +685,8 @@ void set_posestamp(T & out)
 
 void publish_odometry(const ros::Publisher & pubOdomAftMapped)
 {
-    odomAftMapped.header.frame_id = "camera_init";
-    odomAftMapped.child_frame_id = "body"; //
+    odomAftMapped.header.frame_id = init_frame;
+    odomAftMapped.child_frame_id = odom_frame;
     if (publish_odometry_without_downsample)
     {
         odomAftMapped.header.stamp = ros::Time().fromSec(time_current);
@@ -705,7 +710,7 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
     q.setY(odomAftMapped.pose.pose.orientation.y);
     q.setZ(odomAftMapped.pose.pose.orientation.z);
     transform.setRotation( q );
-    br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "camera_init", "body" ) );
+    br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, init_frame, odom_frame ) );
 }
 
 void publish_path(const ros::Publisher pubPath)
@@ -713,7 +718,7 @@ void publish_path(const ros::Publisher pubPath)
     set_posestamp(msg_body_pose.pose);
     // msg_body_pose.header.stamp = ros::Time::now();
     msg_body_pose.header.stamp = ros::Time().fromSec(lidar_end_time);
-    msg_body_pose.header.frame_id = "camera_init";
+    msg_body_pose.header.frame_id = init_frame;
     static int jjj = 0;
     jjj++;
     // if (jjj % 2 == 0) // if path is too large, the rvis will crash
@@ -729,10 +734,10 @@ int main(int argc, char** argv)
     ros::NodeHandle nh("~");
     readParameters(nh);
     cout<<"lidar_type: "<<lidar_type<<endl;
-    
+    init_frame = uav_name + "/" + "point_lio_init";
+    odom_frame = uav_name + "/" + "point_lio_odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
-    path.header.frame_id ="camera_init";
-
+    path.header.frame_id = init_frame;
     /*** variables definition for counting ***/
     int frame_num = 0;
     double aver_time_consu = 0, aver_time_icp = 0, aver_time_match = 0, aver_time_incre = 0, aver_time_solve = 0, aver_time_propag = 0;

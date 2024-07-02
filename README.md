@@ -1,22 +1,6 @@
 # Point-LIO
 ## 1. Introduction
 
-**Please try the new branch 'point-lio-with-grid-map', it solves some implementation problems of the original code, and also supports the simulation dataset with points of a scan collected at the same timestamp.**
-<div align="center">
-    <div align="center">
-        <img src="https://github.com/hku-mars/Point-LIO/raw/master/image/toc4.png" width = 75% >
-    </div>
-    <font color=#a0a0a0 size=2>The framework and key points of the Point-LIO.</font>
-</div>
-
-**New features:**
-1. would not fly under degeneration.
-2. high odometry output frequency, 4k-8kHz.
-3. robust to IMU saturation and severe vibration, and other aggressive motions (75 rad/s in our test).
-4. no motion distortion.
-5. computationally efficient, robust, versatile on public datasets with general motions. 
-6. As an odometry, Point-LIO could be used in various autonomous tasks, such as trajectory planning, control, and perception, especially in cases involving very fast ego-motions (e.g., in the presence of severe vibration and high angular or linear velocity) or requiring high-rate odometry output and mapping (e.g., for high-rate feedback control and perception).
-
 **Important notes:**
 
 A. Please make sure the IMU and LiDAR are **Synchronized**, that's important.
@@ -44,13 +28,6 @@ The codes of this repo are contributed by:
 
 ## **1.2. Related paper**
 Our paper is published on Advanced Intelligent Systems(AIS). [Point-LIO](https://onlinelibrary.wiley.com/doi/epdf/10.1002/aisy.202200459), DOI: 10.1002/aisy.202200459
-
-
-## **1.3. Related video**
-Our accompany video is available on **YouTube**.
-<div align="center">
-    <a href="https://youtu.be/oS83xUs42Uw" target="_blank"><img src="https://github.com/hku-mars/Point-LIO/raw/master/image/final.png" width=60% /></a>
-</div>
 
 ## 2. What can Point-LIO do?
 ### 2.1 Simultaneous LiDAR localization and mapping (SLAM) without motion distortion
@@ -161,24 +138,6 @@ Set ``` pcd_save_enable ``` in launchfile to ``` 1 ```. All the scans (in global
     4 is Z values
     5 is intensity
 ```
-
-# **6. Examples**
-
-The example datasets could be downloaded through [onedrive](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/hdj65822_connect_hku_hk/EmRJYy4ZfAlMiIJ786ogCPoBcGQ2BAchuXjE5oJQjrQu0Q?e=igu44W). Pay attention that if you want to test on racing_drone.bag, [0.0, 9.810, 0.0] should be input in 'mapping/gravity_init' in avia.yaml, and set the 'start_in_aggressive_motion' as true in the yaml. Because this bag start from a high speed motion. And for PULSAR.bag, we change the measuring range of the gyroscope of the built-in IMU to 17.5 rad/s. Therefore, when you test on this bag, please change 'satu_gyro' to 17.5 in avia.yaml.
-
-## **6.1. Example-1: SLAM on datasets with aggressive motions where IMU is saturated**
-<div align="center">
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example1.gif"  width="40%" />
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example2.gif"  width="54%" />
-</div>
-
-## **6.2. Example-2: Application on FPV and PULSAR**
-<div align="center">
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example3.gif"  width="58%" />
-<img src="https://github.com/hku-mars/Point-LIO/raw/master/image/example4.gif"  width="35%" />
-</div>
-
-PULSAR is a self-rotating UAV actuated by only one motor, [PULSAR](https://github.com/hku-mars/PULSAR)
 
 ## 7. Contact us
 If you have any questions about this work, please feel free to contact me <hdj65822ATconnect.hku.hk> and Dr. Fu Zhang <fuzhangAThku.hk> via email.
