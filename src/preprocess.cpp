@@ -132,6 +132,49 @@ void Preprocess::avia_handler(const livox_ros_driver2::CustomMsg::ConstPtr &msg)
 
 }
 
+void Preprocess::unreal_lidar_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
+{
+  pl_surf.clear();
+  // pl_corn.clear();
+  // pl_full.clear();
+  pcl::PointCloud<unreal_lidar_ros::Point> pl_orig;
+  /*TODO: change this function with a custom handler*/
+  // pcl::fromROSMsg(*msg, pl_orig);
+  int plsize = pl_orig.size();
+  // pl_corn.reserve(plsize);
+  pl_surf.reserve(plsize);
+  
+  
+  double time_stamp = msg->header.stamp.toSec();
+  // cout << "===================================" << endl;
+  // printf("Pt size = %d, N_SCANS = %d\r\n", plsize, N_SCANS);
+  for (int i = 0; i < pl_orig.points.size(); i++)
+  {
+    if (i % point_filter_num != 0) continue; //I take a point of the pointcloud every point_filter_num times
+
+    double range = pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y + pl_orig.points[i].z * pl_orig.points[i].z;
+    
+    if (range < (blind * blind)) continue; //chack if the points are beyond a certain threshold (probably the drone frame)
+    
+    Eigen::Vector3d pt_vec; //not used
+    PointType added_pt;
+    added_pt.x = pl_orig.points[i].x;
+    added_pt.y = pl_orig.points[i].y;
+    added_pt.z = pl_orig.points[i].z;
+    added_pt.intensity = pl_orig.points[i].intensity;
+    added_pt.normal_x = 0;
+    added_pt.normal_y = 0;
+    added_pt.normal_z = 0;
+    //What is t?
+    //added_pt.curvature = pl_orig.points[i].t * time_unit_scale; // curvature unit: ms (The curvature of a point represents how much the surface at that point deviates from being flat)
+    // std::cout<<"Curvature="<<added_pt.curvature<<std::endl;
+    // std::cout<<"pl_orig.points[i].t="<<pl_orig.points[i].t<<std::endl;
+    pl_surf.points.push_back(added_pt);
+  }
+  
+}
+
+
 void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
   pl_surf.clear();

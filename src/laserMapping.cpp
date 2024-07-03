@@ -762,6 +762,63 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
     br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, init_frame, odom_frame ) );
 }
 
+std::vector<double> medianFilter(const std::vector<double>& signal, int kernel_size) {
+    if (kernel_size % 2 == 0) {
+        throw std::invalid_argument("Kernel size must be odd");
+    }
+
+    int half_kernel = kernel_size / 2;
+    std::vector<double> filtered_signal(signal.size());
+    
+    // Apply the median filter
+    for (size_t i = 0; i < signal.size(); ++i) {
+        std::vector<double> window;
+        
+        // Collect the window elements
+        for (int j = -half_kernel; j <= half_kernel; ++j) {
+            int idx = i + j;
+            if (idx >= 0 && idx < signal.size()) {
+                window.push_back(signal[idx]);
+            }
+        }
+        
+        // Sort the window elements and find the median
+        std::sort(window.begin(), window.end());
+        filtered_signal[i] = window[window.size() / 2];
+    }
+    
+    return filtered_signal;
+}
+
+std::vector<double> lowPassFilter(const std::vector<double>& signal, int window_size) {
+    if (window_size <= 0) {
+        throw std::invalid_argument("Window size must be positive");
+    }
+
+    int half_window = window_size / 2;
+    std::vector<double> filtered_signal(signal.size());
+
+    // Apply the low-pass filter
+    for (size_t i = 0; i < signal.size(); ++i) {
+        double sum = 0.0;
+        int count = 0;
+        
+        // Sum the elements within the window
+        for (int j = -half_window; j <= half_window; ++j) {
+            int idx = i + j;
+            if (idx >= 0 && idx < signal.size()) {
+                sum += signal[idx];
+                count++;
+            }
+        }
+
+        // Calculate the average
+        filtered_signal[i] = sum / count;
+    }
+
+    return filtered_signal;
+}
+
 void publish_path(const ros::Publisher pubPath)
 {
     set_posestamp(msg_body_pose.pose);
@@ -817,6 +874,10 @@ void compute_metrics( const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic
             eigen_ordered_J.push_back(eig_J);
         }
 
+        std::vector<double> filtered_eig = lowPassFilter(eigen_ordered_J, 5);
+        for(int i=0; i<6; i++) {
+            msg_eigenvalue.data.push_back(filtered_eig[i]);
+        }
         /*Iterative Fisher information Matrix (simplified)*/
         // Eigen::Matrix<double, 12, 12>  P_inv;
         // Eigen::Matrix<double, 6, 6> M_eig;
@@ -953,7 +1014,8 @@ int main(int argc, char** argv)
     readParameters(nh);
     cout<<"lidar_type: "<<lidar_type<<endl;
     // init_frame = uav_name + "/" + "point_lio_init";
-    init_frame = uav_name + "uav1/local_origin"; //check the init frame to align with the one of the simulation
+    /*TODO: check frames and add parameters for them*/
+    init_frame = uav_name + "uav1/fixed_origin"; //check the init frame to align with the one of the simulation
     odom_frame = uav_name + "/" + "point_lio_odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id = init_frame;
