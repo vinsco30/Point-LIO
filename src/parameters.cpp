@@ -29,6 +29,7 @@ bool   scan_pub_en, scan_body_pub_en;
 shared_ptr<Preprocess> p_pre;
 double time_lag_imu_to_lidar = 0.0;
 std::string uav_name;
+bool compute_degen;
 
 void readParameters(ros::NodeHandle &nh)
 {
@@ -50,8 +51,8 @@ void readParameters(ros::NodeHandle &nh)
   nh.param<bool>("common/cut_frame",cut_frame,false);
   nh.param<double>("common/cut_frame_time_interval",cut_frame_time_interval,0.1);
   nh.param<double>("common/time_lag_imu_to_lidar",time_lag_imu_to_lidar,0.0);
-  nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
-  nh.param<double>("filter_size_map",filter_size_map_min,0.5);
+  nh.param<double>("filter_size_surf",filter_size_surf_min,1.0);
+  nh.param<double>("filter_size_map",filter_size_map_min,1.0);
   nh.param<double>("cube_side_length",cube_len,200);
   nh.param<float>("mapping/det_range",DET_RANGE,300.f);
   nh.param<double>("mapping/fov_degree",fov_deg,180);
@@ -88,5 +89,6 @@ void readParameters(ros::NodeHandle &nh)
   nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
   nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
   nh.param<std::string>("uav_name", uav_name, "");
+  nh.param<bool>("compute_degeneracy", compute_degen, false);
 }
 

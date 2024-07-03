@@ -13,6 +13,9 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Float32.h>
+#include <std_msgs/UInt16.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -63,8 +66,8 @@ deque<sensor_msgs::Imu::ConstPtr> imu_deque;
 PointCloudXYZI::Ptr feats_undistort(new PointCloudXYZI());
 PointCloudXYZI::Ptr feats_down_body_space(new PointCloudXYZI());
 PointCloudXYZI::Ptr init_feats_world(new PointCloudXYZI());
-
-pcl::VoxelGrid<PointType> downSizeFilterSurf;
+/*Down-sized pcl using voxel grid approach*/
+pcl::VoxelGrid<PointType> downSizeFilterSurf; 
 pcl::VoxelGrid<PointType> downSizeFilterMap;
 
 V3D euler_cur;
@@ -91,38 +94,57 @@ void SigHandle(int sig)
 
 inline void dump_lio_state_to_log(FILE *fp)  
 {
-    V3D rot_ang;
-    if (!use_imu_as_input)
-    {
-        rot_ang = SO3ToEuler(kf_output.x_.rot);
-    }
-    else
-    {
-        rot_ang = SO3ToEuler(kf_input.x_.rot);
-    }
-    
     fprintf(fp, "%lf ", Measures.lidar_beg_time - first_lidar_time);
-    fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                   // Angle
-    if (use_imu_as_input)
-    {
-        fprintf(fp, "%lf %lf %lf ", kf_input.x_.pos(0), kf_input.x_.pos(1), kf_input.x_.pos(2)); // Pos  
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // omega  
-        fprintf(fp, "%lf %lf %lf ", kf_input.x_.vel(0), kf_input.x_.vel(1), kf_input.x_.vel(2)); // Vel  
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // Acc  
-        fprintf(fp, "%lf %lf %lf ", kf_input.x_.bg(0), kf_input.x_.bg(1), kf_input.x_.bg(2));    // Bias_g  
-        fprintf(fp, "%lf %lf %lf ", kf_input.x_.ba(0), kf_input.x_.ba(1), kf_input.x_.ba(2));    // Bias_a  
-        fprintf(fp, "%lf %lf %lf ", kf_input.x_.gravity(0), kf_input.x_.gravity(1), kf_input.x_.gravity(2)); // Bias_a  
-    }
-    else
-    {
-        fprintf(fp, "%lf %lf %lf ", kf_output.x_.pos(0), kf_output.x_.pos(1), kf_output.x_.pos(2)); // Pos  
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // omega  
-        fprintf(fp, "%lf %lf %lf ", kf_output.x_.vel(0), kf_output.x_.vel(1), kf_output.x_.vel(2)); // Vel  
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // Acc  
-        fprintf(fp, "%lf %lf %lf ", kf_output.x_.bg(0), kf_output.x_.bg(1), kf_output.x_.bg(2));    // Bias_g  
-        fprintf(fp, "%lf %lf %lf ", kf_output.x_.ba(0), kf_output.x_.ba(1), kf_output.x_.ba(2));    // Bias_a  
-        fprintf(fp, "%lf %lf %lf ", kf_output.x_.gravity(0), kf_output.x_.gravity(1), kf_output.x_.gravity(2)); // Bias_a  
-    }
+
+    /*Add log for covariance*/
+    Eigen::Matrix<double, 30, 30> P_up;
+    P_up = Eigen::Matrix<double, 30, 30>::Zero();
+    int no_0 = 0; //Number of non-zero values of the covariance matrix.
+        //Get the covariance matrix
+        P_up = kf_output.get_P();
+        for (int i_=0; i_<30; i_++) {
+            for (int j_=0; j_<30; j_++) {
+                if( std::abs( P_up(i_,j_) ) >= 0.1 ) {
+                    no_0++;
+                    fprintf( fp, "%s%d %lf %d %d ", "-", no_0, P_up(i_,j_), i_, j_ );
+                }
+            }
+        }
+    // std::cout<<"Over-threshold values: "<<no_0<<std::endl;
+    no_0 = 0;
+
+    // V3D rot_ang;
+    // if (!use_imu_as_input)
+    // {
+    //     rot_ang = SO3ToEuler(kf_output.x_.rot);
+    // }
+    // else
+    // {
+    //     rot_ang = SO3ToEuler(kf_input.x_.rot);
+    // }
+    
+    // fprintf(fp, "%lf ", Measures.lidar_beg_time - first_lidar_time);
+    // fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                   // Angle
+    // if (use_imu_as_input)
+    // {
+    //     fprintf(fp, "%lf %lf %lf ", kf_input.x_.pos(0), kf_input.x_.pos(1), kf_input.x_.pos(2)); // Pos  
+    //     fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // omega  
+    //     fprintf(fp, "%lf %lf %lf ", kf_input.x_.vel(0), kf_input.x_.vel(1), kf_input.x_.vel(2)); // Vel  
+    //     fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // Acc  
+    //     fprintf(fp, "%lf %lf %lf ", kf_input.x_.bg(0), kf_input.x_.bg(1), kf_input.x_.bg(2));    // Bias_g  
+    //     fprintf(fp, "%lf %lf %lf ", kf_input.x_.ba(0), kf_input.x_.ba(1), kf_input.x_.ba(2));    // Bias_a  
+    //     fprintf(fp, "%lf %lf %lf ", kf_input.x_.gravity(0), kf_input.x_.gravity(1), kf_input.x_.gravity(2)); // Bias_a  
+    // }
+    // else
+    // {
+    //     fprintf(fp, "%lf %lf %lf ", kf_output.x_.pos(0), kf_output.x_.pos(1), kf_output.x_.pos(2)); // Pos  
+    //     fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // omega  
+    //     fprintf(fp, "%lf %lf %lf ", kf_output.x_.vel(0), kf_output.x_.vel(1), kf_output.x_.vel(2)); // Vel  
+    //     fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                        // Acc  
+    //     fprintf(fp, "%lf %lf %lf ", kf_output.x_.bg(0), kf_output.x_.bg(1), kf_output.x_.bg(2));    // Bias_g  
+    //     fprintf(fp, "%lf %lf %lf ", kf_output.x_.ba(0), kf_output.x_.ba(1), kf_output.x_.ba(2));    // Bias_a  
+    //     fprintf(fp, "%lf %lf %lf ", kf_output.x_.gravity(0), kf_output.x_.gravity(1), kf_output.x_.gravity(2)); // Bias_a  
+    // }
     fprintf(fp, "\r\n");  
     fflush(fp);
 }
@@ -235,10 +257,11 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     PointCloudXYZI::Ptr  ptr(new PointCloudXYZI());
     PointCloudXYZI::Ptr  ptr_div(new PointCloudXYZI());
     double time_div = msg->header.stamp.toSec();
-    p_pre->process(msg, ptr);
+    p_pre->process(msg, ptr); //ptr is the pcl that comes from the preprocessing library that doesn't preprocess it! :)
+    // std::cout<<"Punti in OUSTER: "<<ptr->size()<<std::endl;
     if (cut_frame)
     {
-        sort(ptr->points.begin(), ptr->points.end(), time_list);
+        sort(ptr->points.begin(), ptr->points.end(), time_list); //sorting points of the pcl
 
         for (int i = 0; i < ptr->size(); i++)
         {
@@ -316,8 +339,11 @@ void livox_pcl_cbk(const livox_ros_driver2::CustomMsg::ConstPtr &msg)
     
     PointCloudXYZI::Ptr  ptr(new PointCloudXYZI());
     PointCloudXYZI::Ptr  ptr_div(new PointCloudXYZI());
-    p_pre->process(msg, ptr);
+
+    p_pre->process(msg, ptr); //Now I have everything in the pointer to the PointCloudXYZI msg
+    
     double time_div = msg->header.stamp.toSec();
+    // std::cout<<"Punti in LIVOX: "<<ptr->size()<<std::endl;
     if (cut_frame)
     {
         sort(ptr->points.begin(), ptr->points.end(), time_list);
@@ -683,6 +709,28 @@ void set_posestamp(T & out)
     }
 }
 
+/*Assign velocity values*/
+template<typename T>
+void set_velstamp(T & out) 
+{
+    if (!use_imu_as_input) 
+    {
+        out.linear.x = kf_output.x_.vel(0);
+        out.linear.y = kf_output.x_.vel(1);
+        out.linear.z = kf_output.x_.vel(2);
+        out.angular.x = kf_output.x_.omg(0);
+        out.angular.y = kf_output.x_.omg(1);
+        out.angular.z = kf_output.x_.omg(2);
+    }
+    else
+    {
+        out.linear.x = kf_input.x_.vel(0);
+        out.linear.y = kf_input.x_.vel(1);
+        out.linear.z = kf_input.x_.vel(2);
+        // out.angular.x = kf_input.x_.omega(0);
+    }
+}
+
 void publish_odometry(const ros::Publisher & pubOdomAftMapped)
 {
     odomAftMapped.header.frame_id = init_frame;
@@ -696,6 +744,7 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
         odomAftMapped.header.stamp = ros::Time().fromSec(lidar_end_time);
     }
     set_posestamp(odomAftMapped.pose.pose);
+    set_velstamp(odomAftMapped.twist.twist);
     
     pubOdomAftMapped.publish(odomAftMapped);
 
@@ -726,7 +775,176 @@ void publish_path(const ros::Publisher pubPath)
         path.poses.emplace_back(msg_body_pose);
         pubPath.publish(path);
     }
-}        
+}     
+
+void compute_metrics( const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>& M, const double m_noise, 
+                        const Eigen::Matrix<double, 12, 12>& P_1, const Eigen::Matrix<double, 30, 30>& P_full, 
+                        const Eigen::Matrix<double, 30, 30>& Fx, const Eigen::Matrix<double, 30, 30>& Fw,
+                        const ros::Publisher& pubEigen, const ros::Publisher& pubTrace, const ros::Publisher& pubEigen2,
+                        Eigen::Matrix<double, 6, 6>& J_act ) {
+
+    std_msgs::Float32MultiArray msg_eigenvalue;
+    std_msgs::Float32MultiArray msg_eigenvalue_J;
+
+    if( lidar_type == AVIA ) {
+        
+
+        Eigen::Matrix<double, 12, 12>  P_inv;
+        P_inv = P_1.inverse();
+        /*Iterative Fisher information Matrix (complete)*/
+        Eigen::Matrix<double, 6, 6> J_new;
+        J_new = (h_tot.transpose()*h_tot + P_inv).block<6,6>(0,0)/*m_noise*+ ( Fw.block<12,12>(0,0) + Fx.block<12,12>(0,0)*J_act*Fx.block<12,12>(0,0).transpose()).inverse()*/;
+        J_act = J_new;
+        Eigen::EigenSolver<Eigen::MatrixXd> eigsolver_J;
+        eigsolver_J.compute(J_act);
+        Eigen::VectorXd eigen_values_J  = eigsolver_J.eigenvalues().real();
+        Eigen::MatrixXd eigen_vectors_J = eigsolver_J.eigenvectors().real();
+        int num_eigen_J = eigen_values_J.size();
+        msg_eigenvalue_J.data.resize( num_eigen_J );
+        std::vector<double> eigen_ordered_J;
+
+        /*Ordering Eigenvalues of J*/
+        for (int i = 0; i < 6; i++) {
+            double eig_J = 0;
+            double vec_J = 0;
+            for (int j = 0; j < eigen_vectors_J.cols(); j++) {
+            if (abs(eigen_vectors_J(i, j)) > vec_J) {
+                vec_J = abs(eigen_vectors_J(i, j));
+                eig_J = eigen_values_J(j);
+            }
+            }
+            msg_eigenvalue_J.data.push_back(eig_J);
+            eigen_ordered_J.push_back(eig_J);
+        }
+
+        /*Iterative Fisher information Matrix (simplified)*/
+        // Eigen::Matrix<double, 12, 12>  P_inv;
+        // Eigen::Matrix<double, 6, 6> M_eig;
+        // P_inv = P_1.inverse();
+        // M_eig = (m_noise*M.transpose()*M + P_inv).block<6,6>(0,0);
+        
+        // /*Get eigen values and eigenvectors of the infromation matrix*/
+        // Eigen::EigenSolver<Eigen::MatrixXd> eigensolver;
+        // eigensolver.compute(M_eig);
+        // Eigen::VectorXd eigen_values  = eigensolver.eigenvalues().real();
+        // Eigen::MatrixXd eigen_vectors = eigensolver.eigenvectors().real();
+
+        /*Publish eigenvalues*/
+        // int num_eigen = eigen_values.size(); //6
+        // // int num_eigen = 12;
+        // msg_eigenvalue.data.resize( 6 );
+        // std::vector<double> eigen_ordered;
+
+        // /*Ordering Eigenvalues*/
+        // for (int i = 0; i < 6; i++) {
+        //     double eig = 0;
+        //     double vec = 0;
+        //     for (int j = 0; j < eigen_vectors.cols(); j++) {
+        //     if (abs(eigen_vectors(i, j)) > vec) {
+        //         vec = abs(eigen_vectors(i, j));
+        //         eig = eigen_values(j);
+        //     }
+        //     }
+        //     msg_eigenvalue.data.push_back(eig);
+        //     eigen_ordered.push_back(eig);
+        // }
+    }
+    else {
+        Eigen::Matrix<double, 12, 12>  P_inv;
+        P_inv = P_1.inverse();
+        /*Iterative Fisher information Matrix*/
+        Eigen::Matrix<double, 6, 6> J_new;
+        J_new = (m_noise*M.transpose()*M + P_inv).block<6,6>(0,0)/*+ ( Fw.block<12,12>(0,0) + Fx.block<12,12>(0,0)*J_act*Fx.block<12,12>(0,0).transpose()).inverse()*/;
+        J_act = J_new;
+        Eigen::EigenSolver<Eigen::MatrixXd> eigsolver_J;
+        eigsolver_J.compute(J_act);
+        Eigen::VectorXd eigen_values_J  = eigsolver_J.eigenvalues().real();
+        Eigen::MatrixXd eigen_vectors_J = eigsolver_J.eigenvectors().real();
+        int num_eigen_J = eigen_values_J.size();
+        msg_eigenvalue_J.data.resize( num_eigen_J );
+        std::vector<double> eigen_ordered_J;
+
+        /*Ordering Eigenvalues of J*/
+        for (int i = 0; i < 6; i++) {
+            double eig_J = 0;
+            double vec_J = 0;
+            for (int j = 0; j < eigen_vectors_J.cols(); j++) {
+            if (abs(eigen_vectors_J(i, j)) > vec_J) {
+                vec_J = abs(eigen_vectors_J(i, j));
+                eig_J = eigen_values_J(j);
+            }
+            }
+            msg_eigenvalue_J.data.push_back(eig_J);
+            eigen_ordered_J.push_back(eig_J);
+        }
+
+        /*Iterative Fisher information Matrix (simplified)*/
+        Eigen::Matrix<double, 6, 6> M_eig;
+
+        M_eig = (m_noise*M.transpose()*M + P_inv).block<6,6>(0,0);
+        // M_eig = P_1.transpose()*P_1;
+        
+        /*Get eigen values and eigenvectors of the COVARIANCE*/
+        // Eigen::EigenSolver<Eigen::MatrixXd> eigensolver1;
+        // eigensolver1.compute(P_1);
+        // Eigen::VectorXd eigen_values1  = eigensolver1.eigenvalues().real();
+        // Eigen::MatrixXd eigen_vectors1 = eigensolver1.eigenvectors().real();
+        // /*Publish eigenvalues of the covariance matrix*/
+        // int num_eigen1 = eigen_values1.size(); //6
+        // std_msgs::Float32MultiArray msg_eigenvalue1;
+        // msg_eigenvalue1.data.resize( 6 );
+        // std::vector<double> eigen_ordered1;
+
+        // /*Ordering Eigenvalues*/
+        // for (int i = 0; i < 6; i++) {
+        //     double eig1 = 0;
+        //     double vec1 = 0;
+        //     for (int j = 0; j < eigen_vectors1.cols(); j++) {
+        //     if (abs(eigen_vectors1(i, j)) > vec1) {
+        //         vec1 = abs(eigen_vectors1(i, j));
+        //         eig1 = eigen_values1(j);
+        //     }
+        //     }
+        //     msg_eigenvalue1.data.push_back(eig1);
+        //     eigen_ordered1.push_back(eig1);
+        // }
+
+        /*Get eigen values and eigenvectors of the infromation matrix*/
+        Eigen::EigenSolver<Eigen::MatrixXd> eigensolver;
+        eigensolver.compute(M_eig);
+        Eigen::VectorXd eigen_values  = eigensolver.eigenvalues().real();
+        Eigen::MatrixXd eigen_vectors = eigensolver.eigenvectors().real();
+
+        /*Publish eigenvalues*/
+        int num_eigen = eigen_values.size(); //6
+        // int num_eigen = 12;
+        
+        msg_eigenvalue.data.resize( 6 );
+        std::vector<double> eigen_ordered;
+
+        /*Ordering Eigenvalues*/
+        for (int i = 0; i < 6; i++) {
+            double eig = 0;
+            double vec = 0;
+            for (int j = 0; j < eigen_vectors.cols(); j++) {
+            if (abs(eigen_vectors(i, j)) > vec) {
+                vec = abs(eigen_vectors(i, j));
+                eig = eigen_values(j);
+            }
+            }
+            msg_eigenvalue.data.push_back(eig);
+            eigen_ordered.push_back(eig);
+        }
+    }
+
+    std_msgs::Float32 msg_trace;
+    msg_trace.data = P_1.trace();
+
+    pubEigen.publish(msg_eigenvalue);
+    // ROS_INFO("Pubblico autovalori");
+    pubEigen2.publish(msg_eigenvalue_J);
+    pubTrace.publish(msg_trace);
+}
 
 int main(int argc, char** argv)
 {
@@ -734,7 +952,8 @@ int main(int argc, char** argv)
     ros::NodeHandle nh("~");
     readParameters(nh);
     cout<<"lidar_type: "<<lidar_type<<endl;
-    init_frame = uav_name + "/" + "point_lio_init";
+    // init_frame = uav_name + "/" + "point_lio_init";
+    init_frame = uav_name + "uav1/local_origin"; //check the init frame to align with the one of the simulation
     odom_frame = uav_name + "/" + "point_lio_odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id = init_frame;
@@ -747,10 +966,12 @@ int main(int argc, char** argv)
     double FOV_DEG = (fov_deg + 10.0) > 179.9 ? 179.9 : (fov_deg + 10.0);
     double HALF_FOV_COS = cos((FOV_DEG) * 0.5 * PI_M / 180.0);
 
-    memset(point_selected_surf, true, sizeof(point_selected_surf));
+    memset(point_selected_surf, true, sizeof(point_selected_surf)); //initialization of point_selected_surf (vector of bool) with all true
+    /*sets the size of the voxels (the leaf size) used by the voxel grid filter - filter_size_surf_min is a parameter*/
     downSizeFilterSurf.setLeafSize(filter_size_surf_min, filter_size_surf_min, filter_size_surf_min);
     downSizeFilterMap.setLeafSize(filter_size_map_min, filter_size_map_min, filter_size_map_min);
-    Lidar_T_wrt_IMU<<VEC_FROM_ARRAY(extrinT);
+    /*Lidar_T_wrt_IMU type is V3D(=Vector3d) - Lidar_R_wrt_IMU type is M3D(=Matrix3d)*/
+    Lidar_T_wrt_IMU<<VEC_FROM_ARRAY(extrinT); 
     Lidar_R_wrt_IMU<<MAT_FROM_ARRAY(extrinR);
     if (extrinsic_est_en)
     {
@@ -785,7 +1006,7 @@ int main(int argc, char** argv)
     Eigen::Matrix<double, 30, 30> Q_output = process_noise_cov_output();
     /*** debug record ***/
     FILE *fp;
-    string pos_log_dir = root_dir + "/Log/pos_log.txt";
+    string pos_log_dir = root_dir + "/Log/cov_log.txt";
     fp = fopen(pos_log_dir.c_str(),"w");
 
     ofstream fout_out, fout_imu_pbp;
@@ -801,6 +1022,7 @@ int main(int argc, char** argv)
         nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : \
         nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
+    /*** ROS publisher initialization ***/
     ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
             ("/cloud_registered", 100000);
     ros::Publisher pubLaserCloudFullRes_body = nh.advertise<sensor_msgs::PointCloud2>
@@ -815,12 +1037,112 @@ int main(int argc, char** argv)
             ("/path", 100000);
     ros::Publisher plane_pub = nh.advertise<visualization_msgs::Marker>
             ("/planner_normal", 1000);
+    ros::Publisher cov_pub = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/Matrices/P", 100000);
+    ros::Publisher r_imu_pub = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/residuals/IMU", 100000);
+    ros::Publisher r_lidar_pub = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/residuals/LIDAR", 100000);
+    ros::Publisher gain_imu_pub = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/Matrices/K_imu", 100000);
+    ros::Publisher gain_lidar_pub = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/Matrices/K_lidar", 100000);
+    ros::Publisher obs_pub = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/Matrices/H", 100000);
+    ros::Publisher n_points_pub = nh.advertise<std_msgs::UInt16>
+            ("/point_lio/n_points", 100000);
+    ros::Publisher eigen_pub = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/eig", 100000);
+    ros::Publisher eigen_pub2 = nh.advertise<std_msgs::Float32MultiArray>
+            ("/point_lio/eig2", 100000);
+    ros::Publisher trace_pub = nh.advertise<std_msgs::Float32>
+            ("/point_lio/trace", 100000);
 //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
     ros::Rate rate(5000);
     bool status = ros::ok();
+    /* Covariance matrix */
+    // if( !use_imu_as_input ) {
+        Eigen::Matrix<double, 30, 30> P_up;
+        P_up = Eigen::Matrix<double, 30, 30>::Zero();      
+        std_msgs::Float32MultiArray cov_msg; 
+        cov_msg.data.resize( 30 );
+    // }
+    // else {
+    //     Eigen::Matrix<double, 24, 24> P_up;
+    //     P_up = Eigen::Matrix<double, 24, 24>::Zero();
+    //     std_msgs::Float32MultiArray cov_msg; 
+    //     cov_msg.data.resize( 24 );
+    // }
+    Matrix<double, Eigen::Dynamic, Eigen::Dynamic> residuals_lidar;
+    Matrix<double, 6, 1> residuals_IMU;
+    Eigen::Matrix<double, 30, 6> K_imu;
+    Matrix<double, 30, Eigen::Dynamic> K_lidar;
+    Matrix<double, Eigen::Dynamic, Eigen::Dynamic> H;
+    Matrix<double, 30, 30> Fx;
+    Matrix<double, 30, 30> Fw;
+    Matrix<double, 6, 6> J;
+    J = Eigen::Matrix<double, 6, 6>::Identity();
+    std_msgs::Float32MultiArray res_imu_msg;
+    res_imu_msg.data.resize( 6 );
+    std_msgs::UInt16 n_points_msg;
+
+    int _cnt = 0;
+
+    double m_noise = 0.1;
+    Eigen::Matrix<double, 12, 12> R_inv;
+    R_inv = (1/m_noise)*Eigen::MatrixXd::Identity(12,12);
+    Eigen::Matrix<double, 12,12> P_red;
     while (status)
     {
+        /*Get the covariance matrix*/
+        // if( !use_imu_as_input ) {
+            P_up = kf_output.get_P();
+            for (int i_=0; i_<12; i_++) {
+                for (int j_=0; j_<12; j_++) {
+                    if( i_ = j_ )
+                        cov_msg.data[i_] = P_up(i_,j_);
+                }
+            }
+        // }
+        // else {
+        //     P_up = kf_input.get_P();
+        //     for (int i_=0; i_<24; i_++) {
+        //         for (int j_=0; j_<24; j_++) {
+        //             if( i_ = j_ )
+        //                 cov_msg.data[i_] = P_up(i_,j_);
+        //         }
+        //     }
+        // }
+        residuals_IMU = kf_output.get_res_imu();
+        for( int i=0; i<6; i++ ) {
+            res_imu_msg.data[i] = residuals_IMU(i);
+        }
+        if( lidar_type != AVIA ) {
+            n_points_msg.data = kf_output.get_n_points();
+            n_points_pub.publish(n_points_msg);
+        }
+            
+        _cnt++;
+        if( _cnt == 1 && compute_degen ) {
+            _cnt=0;
+            residuals_lidar = kf_output.get_res_lidar();
+            K_lidar = kf_output.get_K_l();
+            K_imu = kf_output.get_K_imu();
+            H = kf_output.get_H_x();
+            P_red = P_up.block<12,12>(0, 0);
+            Fx = kf_output.get_F_x();
+            Fw = kf_output.get_F_w();
+            if( H.cols() == 12 )
+                compute_metrics(H, m_noise, P_red, P_up, Fx, Fw, eigen_pub, trace_pub, eigen_pub2, J);
+        }
+
+            
+        // std::cout<<"Dimensione Lidar: "<<_cnt<<std::endl;
+
+        cov_pub.publish(cov_msg);
+        r_imu_pub.publish(res_imu_msg);
+
         if (flg_exit) break;
         ros::spinOnce();
         if(sync_packages(Measures)) 
@@ -845,9 +1167,7 @@ int main(int argc, char** argv)
             propag_time = 0;
             update_time = 0;
             t0 = omp_get_wtime();
-            
             p_imu->Process(Measures, feats_undistort);
-
             // if (feats_undistort->empty() || feats_undistort == NULL)
             if (p_imu->imu_need_init_)
             {
@@ -927,19 +1247,27 @@ int main(int argc, char** argv)
             /*** downsample the feature points in a scan ***/
             t1 = omp_get_wtime();
             if(space_down_sample)
-            {
+            {   
                 downSizeFilterSurf.setInputCloud(feats_undistort);
                 downSizeFilterSurf.filter(*feats_down_body);
                 sort(feats_down_body->points.begin(), feats_down_body->points.end(), time_list); 
             }
             else
-            {
+            {   
                 feats_down_body = Measures.lidar;
                 sort(feats_down_body->points.begin(), feats_down_body->points.end(), time_list); 
             }
+            /*HERE IS THE GAP!!*/
+            // std::cout<<"time_seq_size_FIRST="<<time_seq.size()<<std::endl;
             time_seq = time_compressing<int>(feats_down_body);
+            // std::cout<<"time_seq_size_LATER="<<time_seq.size()<<std::endl;
             feats_down_size = feats_down_body->points.size();
-            
+            // std::cout<<"feats_down_size="<<feats_down_size<<std::endl;
+            if( lidar_type == AVIA ) {
+                n_points_msg.data = feats_down_size;
+                n_points_pub.publish(n_points_msg);
+            }
+
             /*** initialize the map kdtree ***/
             if(!init_map)
             {

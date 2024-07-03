@@ -139,7 +139,7 @@ public:
 		}
 
 		if (prop_cov)
-		{
+		{	
 			flatted_state f_ = f(x_, i_in);
 			// state x_before = x_;
 
@@ -175,6 +175,8 @@ public:
 	
 			F_x1 += f_x_final * dt;
 			P_ = F_x1 * P_ * (F_x1).transpose() + Q * (dt * dt);
+			// F_x = F_x1;
+			F_w = Q * (dt * dt);
 		}
 	}
 
@@ -192,12 +194,17 @@ public:
 				return false;
 				// continue;
 			}
-			Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> z = dyn_share.z;
+			Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> z = dyn_share.z; //The dimension depends on the number of points tracked
 			// Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> R = dyn_share.R; 
 			Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> h_x = dyn_share.h_x;
+			H = h_x;
+			_res_lidar = z;
 			// Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> h_v = dyn_share.h_v;
 			dof_Measurement = h_x.rows();
+			_n_points = dof_Measurement;
+			// std::cout<<_n_points<<"\n";
 			m_noise = dyn_share.M_Noise;
+			_m_noise = m_noise;
 			// dof_Measurement_noise = dyn_share.R.rows();
 			// vectorized_state dx, dx_new;
 			// x_.boxminus(dx, x_propagated);
@@ -207,24 +214,37 @@ public:
 			Matrix<scalar_type, n, Eigen::Dynamic> PHT;
 			Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> HPHT;
 			Matrix<scalar_type, n, Eigen::Dynamic> K_;
+			Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> D_2; 
+			/*If the number of lidar points are less then the states do this block*/
 			if(n > dof_Measurement)
-			{
+			{	
+				// std::cout<<"N>>>>Meas"<<std::endl;
 				PHT = P_. template block<n, 12>(0, 0) * h_x.transpose();
 				HPHT = h_x * PHT.topRows(12);
 				for (int m = 0; m < dof_Measurement; m++)
 				{
 					HPHT(m, m) += m_noise;
 				}
-				K_= PHT*HPHT.inverse();
+				K_= PHT*HPHT.inverse(); //K = P*H^t*(H*P*H^t + R)^-1
+				// std::cout<<"S-1 dimensions: rows="<<HPHT.inverse().rows()<<", cols="<<HPHT.inverse().cols()<<std::endl;
+				K_l = K_;
+				D_2 = z.transpose()*HPHT.inverse()*z;
 			}
+			/*If the number of lidar points are more than the states do this other block*/
 			else
-			{
+			{	
+				// std::cout<<"N<<<<<<Meas"<<std::endl;
 				Matrix<scalar_type, 12, 12> HTH = m_noise * h_x.transpose() * h_x;
 				Matrix<scalar_type, n, n> P_inv = P_.inverse();
 				P_inv.template block<12, 12>(0, 0) += HTH;
 				P_inv = P_inv.inverse();
-				K_ = P_inv.template block<n, 12>(0, 0) * h_x.transpose() * m_noise;
+				// std::cout<<"Righe P: "<<P_inv.rows()<<" Colonne P: "<<P_inv.cols()<<std::endl;
+				K_ = P_inv.template block<n, 12>(0, 0) * h_x.transpose() * m_noise; //K = (H^t*R^-1*H + P^-1)^-1 *H^t*R^-1
+				K_l = K_;
+				// D_2 = z.transpose()*P_inv.template block<n, 12>(0, 0)*z;
+				// std::cout<<"K_dim -- rows: "<<K_.rows()<<" cols: "<<K_.cols()<<std::endl;
 			}
+			/*z is the r of the paper --> residual*/
 			Matrix<scalar_type, n, 1> dx_ = K_ * z; // - h) + (K_x - Matrix<scalar_type, n, n>::Identity()) * dx_new; 
 			// state x_before = x_;
 
@@ -290,6 +310,10 @@ public:
 			// if(n > dof_Measurement)
 			{
 				P_ = P_ - K_*h_x*P_. template block<12, n>(0, 0);
+				// std::cout<<"P_dimension: rows="<<P_.rows()<<", cols="<<P_.cols()<<std::endl;
+				// std::cout<<"K_dimension: rows="<<K_.rows()<<", cols="<<K_.cols()<<std::endl;
+				// std::cout<<"h_x_dimension: rows="<<h_x.rows()<<", cols="<<h_x.cols()<<std::endl;
+				// std::cout<<"n="<<n<<std::endl;
 			}
 		}
 		return true;
@@ -304,10 +328,11 @@ public:
 			h_dyn_share_modified_2(x_, dyn_share);
 
 			Matrix<scalar_type, 6, 1> z = dyn_share.z_IMU;
-
+			_res_imu = z;
 			Matrix<double, 30, 6> PHT;
             Matrix<double, 6, 30> HP;
             Matrix<double, 6, 6> HPHT;
+			Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> D_2; 
 			PHT.setZero();
 			HP.setZero();
 			HPHT.setZero();
@@ -328,7 +353,9 @@ public:
 				HPHT(l_, l_) += dyn_share.R_IMU(l_); //, l);
 			}
         	Eigen::Matrix<double, 30, 6> K = PHT * HPHT.inverse(); 
-                                    
+			K_imu = K;
+			D_2 = z.transpose()*HPHT.inverse()*z;
+			// std::cout<<"D_IMU "<<D_2<<std::endl;
             Matrix<scalar_type, n, 1> dx_ = K * z; 
 
             P_ -= K * HP;
@@ -361,6 +388,42 @@ public:
 	const cov& get_P() const {
 		return P_;
 	}
+
+	const Matrix<scalar_type, n, Eigen::Dynamic>& get_K_l() const {
+		return K_l;
+	}
+
+	const Eigen::Matrix<double, 30, 6>& get_K_imu() const {
+		return K_imu;
+	}
+
+	const Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic>& get_H_x() const {
+		return H;
+	}
+
+	const Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic>& get_res_lidar() const {
+		return _res_lidar;
+	} 
+
+	const Matrix<double, 6, 1>& get_res_imu() const {
+		return _res_imu;
+	}
+
+	const int& get_n_points() const {
+		return _n_points;
+	}
+
+	const double& get_m_noise() const {
+		return _m_noise;
+	}
+
+	const cov& get_F_x() const {
+		return F_x1;
+	}
+
+	const processnoisecovariance& get_F_w() const {
+		return F_w;
+	}
 	state x_;
 private:
 	measurement m_;
@@ -371,6 +434,15 @@ private:
 	cov F_x1 = cov::Identity();
 	cov F_x2 = cov::Identity();
 	cov L_ = cov::Identity();
+	/*Added*/
+	Matrix<scalar_type, n, Eigen::Dynamic> K_l;
+	Eigen::Matrix<double, 30, 6> K_imu;
+	Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> H;
+	Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic> _res_lidar;
+	Matrix<double, 6, 1> _res_imu;
+	processnoisecovariance F_w;
+	int _n_points;
+	double _m_noise;
 
 	processModel *f;
 	processMatrix1 *f_x;

@@ -75,7 +75,7 @@ T calc_dist(Eigen::Vector3d p1, PointType p2){
     T d = (p1(0) - p2.x) * (p1(0) - p2.x) + (p1(1) - p2.y) * (p1(1) - p2.y) + (p1(2) - p2.z) * (p1(2) - p2.z);
     return d;
 }
-
+/*CHECK THIS FUNCTION*/
 template<typename T>
 std::vector<int> time_compressing(const PointCloudXYZI::Ptr &point_cloud)
 {
@@ -84,21 +84,22 @@ std::vector<int> time_compressing(const PointCloudXYZI::Ptr &point_cloud)
   std::vector<int> time_seq;
   // time_seq.clear();
   time_seq.reserve(points_size);
+//   std::cout<<"time_seq.size()-PRIMA_FOR="<<time_seq.size()<<std::endl;
   for(int i = 0; i < points_size - 1; i++)
   {
     j++;
     if (point_cloud->points[i+1].curvature > point_cloud->points[i].curvature)
-    {
+    { 
       time_seq.emplace_back(j);
       j = 0;
     }
   }
   if (j == 0)
-  {
+  { 
     time_seq.emplace_back(1);
   }
   else
-  {
+  { 
     time_seq.emplace_back(j+1);
   }
   return time_seq;

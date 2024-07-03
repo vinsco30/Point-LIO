@@ -21,6 +21,13 @@ state_output state_out;
 input_ikfom input_in;
 V3D angvel_avr, acc_avr;
 
+int cnt=1;
+int n_p = 0;
+int h_idx = 0;
+bool reset = true;
+bool first = true;
+Eigen::Matrix<double, Eigen::Dynamic, 12> h_tot;// = Eigen::MatrixXd::Zero(n_p, 12);
+
 V3D Lidar_T_wrt_IMU(Zero3d);
 M3D Lidar_R_wrt_IMU(Eye3d);
 
@@ -282,13 +289,48 @@ void h_model_input(state_input &s, esekfom::dyn_share_modified<double> &ekfom_da
 }
 
 void h_model_output(state_output &s, esekfom::dyn_share_modified<double> &ekfom_data)
-{
+{	
 	bool match_in_map = false;
-	VF(4) pabcd;
+	VF(4) pabcd; //just a vector of float of dim 4
 	pabcd.setZero();
 	
 	normvec->resize(time_seq[k]);
 	int effect_num_k = 0;
+
+	if( reset ) {
+		n_p = time_seq.size();
+		// cnt++;
+		h_tot.resize(n_p,12);
+		h_tot = Eigen::MatrixXd::Zero(n_p, 12);
+		reset = false;
+	}
+	/*This condition is not complete: and if the same number of points is observed in two successive frames?*/
+	if( time_seq.size() == n_p && !reset && h_idx < n_p-1 ) {
+		if( first ) {
+			cnt++;
+			first = false;
+		}
+		else {
+			cnt++;
+			h_idx++;
+		}
+	}
+	else {
+		
+		if( h_idx != n_p-1 ) {
+			std::cout<<"There is a problem HERE!\n";
+			std::cout<<"I computed the maximum index value "<<h_idx<<", and the number of points are "<<n_p<<"\n";
+		}
+		cnt=1;
+		h_idx=0;
+		reset = true;
+	}
+
+	// if( h_idx == 0 )
+	// 	std::cout<<"FIRST point in the batch\n";
+	// else if ( h_idx == n_p )
+	// 	std::cout<<"LAST point in the batch\n";
+	
 	for (int j = 0; j < time_seq[k]; j++)
 	{
 		PointType &point_body_j  = feats_down_body->points[idx+j+1];
@@ -297,24 +339,24 @@ void h_model_output(state_output &s, esekfom::dyn_share_modified<double> &ekfom_
 		V3D p_body = pbody_list[idx+j+1];
 		V3D p_world;
 		p_world << point_world_j.x, point_world_j.y, point_world_j.z;
-		{
+		{	/*Nearest point computation*/
 			auto &points_near = Nearest_Points[idx+j+1];
 			
 			ikdtree.Nearest_Search(point_world_j, NUM_MATCH_POINTS, points_near, pointSearchSqDis, 2.236); 
-			
+			/*Check if the nearest points fullfill the constraints*/
 			if ((points_near.size() < NUM_MATCH_POINTS) || pointSearchSqDis[NUM_MATCH_POINTS - 1] > 5)
 			{
 				point_selected_surf[idx+j+1] = false;
 			}
 			else
-			{
+			{	/*Plane equation computation*/
 				point_selected_surf[idx+j+1] = false;
 				if (esti_plane(pabcd, points_near, plane_thr)) //(planeValid)
 				{
 					float pd2 = pabcd(0) * point_world_j.x + pabcd(1) * point_world_j.y + pabcd(2) * point_world_j.z + pabcd(3);
 					
 					if (p_body.norm() > match_s * pd2 * pd2)
-					{
+					{	
 						// point_selected_surf[i] = true;
 						point_selected_surf[idx+j+1] = true;
 						normvec->points[j].x = pabcd(0);
@@ -329,17 +371,19 @@ void h_model_output(state_output &s, esekfom::dyn_share_modified<double> &ekfom_
 	}
 	if (effect_num_k == 0) 
 	{
+		/*If the plane is not find*/
 		ekfom_data.valid = false;
 		return;
 	}
 	ekfom_data.M_Noise = laser_point_cov;
+	// std::cout<<"Effect_num_k="<<effect_num_k<<std::endl;
 	ekfom_data.h_x = Eigen::MatrixXd::Zero(effect_num_k, 12);
 	ekfom_data.z.resize(effect_num_k);
 	int m = 0;
 	for (int j = 0; j < time_seq[k]; j++)
-	{
+	{	
 		if(point_selected_surf[idx+j+1])
-		{
+		{	/*Computation normal vector of the plane*/
 			V3D norm_vec(normvec->points[j].x, normvec->points[j].y, normvec->points[j].z);
 			
 			if (extrinsic_est_en)
@@ -352,7 +396,18 @@ void h_model_output(state_output &s, esekfom::dyn_share_modified<double> &ekfom_
 				V3D C(s.rot.transpose() * norm_vec);
 				V3D A(p_imu_crossmat * C);
 				V3D B(p_crossmat * s.offset_R_L_I.transpose() * C);
+				/*Measurement model matrix computation*/
 				ekfom_data.h_x.block<1, 12>(m, 0) << norm_vec(0), norm_vec(1), norm_vec(2), VEC_FROM_ARRAY(A), VEC_FROM_ARRAY(B), VEC_FROM_ARRAY(C);
+				/*Accumulate information matrix for Livox data*/
+				if( lidar_type == AVIA ) {
+					// std::cout<<"Accumulate information matrix\n";
+					// h_tot_build( ekfom_data.h_x );
+					h_tot.block<1,12>(cnt-1,0) << ekfom_data.h_x.block<1, 12>(m, 0)(0,0), ekfom_data.h_x.block<1, 12>(m, 0)(0,1), ekfom_data.h_x.block<1, 12>(m, 0)(0,2), 
+													ekfom_data.h_x.block<1, 12>(m, 0)(0,3), ekfom_data.h_x.block<1, 12>(m, 0)(0,4), ekfom_data.h_x.block<1, 12>(m, 0)(0,5), 
+													ekfom_data.h_x.block<1, 12>(m, 0)(0,6), ekfom_data.h_x.block<1, 12>(m, 0)(0,7), ekfom_data.h_x.block<1, 12>(m, 0)(0,8), 
+													ekfom_data.h_x.block<1, 12>(m, 0)(0,9), ekfom_data.h_x.block<1, 12>(m, 0)(0,10), ekfom_data.h_x.block<1, 12>(m, 0)(0,11);
+					// std::cout<<m<<std::endl;
+				}
 			}
 			else
 			{   
@@ -360,9 +415,12 @@ void h_model_output(state_output &s, esekfom::dyn_share_modified<double> &ekfom_
 				V3D C(s.rot.transpose() * norm_vec);
 				V3D A(point_crossmat * C);
 				// V3D A(point_crossmat * state.rot_end.transpose() * norm_vec);
+				/*Measurement model matrix computation*/
 				ekfom_data.h_x.block<1, 12>(m, 0) << norm_vec(0), norm_vec(1), norm_vec(2), VEC_FROM_ARRAY(A), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 			}
+			/*Residual calculation*/
 			ekfom_data.z(m) = -norm_vec(0) * feats_down_world->points[idx+j+1].x -norm_vec(1) * feats_down_world->points[idx+j+1].y -norm_vec(2) * feats_down_world->points[idx+j+1].z-normvec->points[j].intensity;
+			// std::cout<<"ekfom_data dimensions: rows="<<ekfom_data.z(m).rows()<<", cols="<<ekfom_data.z(m).cols()<<std::endl;
 			m++;
 		}
 	}
@@ -450,3 +508,35 @@ void pointBodyToWorld(PointType const * const pi, PointType * const po)
 }
 
 const bool time_list(PointType &x, PointType &y) {return (x.curvature < y.curvature);};
+
+void h_tot_build( const Eigen::Matrix<double, Eigen::Dynamic, 12>& h_act ) {
+	
+	h_tot.block<1,12>(cnt-1,0) << h_act(0,0), h_act(0,1), h_act(0,2), h_act(0,3), h_act(0,4), h_act(0,5), h_act(0,6), h_act(0,7), h_act(0,8), h_act(0,9), h_act(0,10), h_act(0,11);
+	// h_tot.block<1,12>(h_idx,0) << 1,1,1,1,1,1,1,1,1,1,1,1;	
+
+	// if( h_idx == 0 )
+	// 	std::cout<<"FIRST point in the batch\n";
+	// else if ( h_idx == n_p-1 )
+	// 	std::cout<<"LAST point in the batch\n";
+	// h_tot.block<1,12>(h_idx,0) << h_act; 
+	// for( int i=0; i<12; i++ ) {
+	// 	std::cout<<h_tot(cnt-1,i)<<" ";
+	// }
+	// if( time_seq.size() == n_p && !reset && added == 0 ) {
+
+	// 	std::cout<<"ADD row\n";
+	// 	added++;
+	// }
+	// else {
+	// 	// std::cout<<"I ran this function "<<cnt<<" times, and the number of points are "<<n_p<<"\n";
+	// 	h_idx=0;
+	// 	std::cout<<"STOP adding\n";
+	// 	std::cout<<"ADDED "<<added<<" rows out of "<<n_p<<" points\n";
+	// 	added = 0;
+	// }
+
+	
+	// std::cout<<"\n";
+	/*L'ERRORE STA NELLA DEFINIZIONE DEL BLOCCO A SINISTRA*/
+	
+}

@@ -14,7 +14,8 @@ typedef pcl::PointCloud<PointType> PointCloudXYZI;
 
 enum LID_TYPE{AVIA = 1, VELO16, OUST64, HESAIxt32}; //{1, 2, 3, 4}
 enum TIME_UNIT{SEC = 0, MS = 1, US = 2, NS = 3};
-enum Feature{Nor, Poss_Plane, Real_Plane, Edge_Jump, Edge_Plane, Wire, ZeroPoint};
+//POSSIBLE FEATURES: Normal - Possible Plane - Real Plane - Edge Jump(?) - Edge Plane(?) - Wire - ZeroPoint
+enum Feature{Nor, Poss_Plane, Real_Plane, Edge_Jump, Edge_Plane, Wire, ZeroPoint}; 
 enum Surround{Prev, Next};
 enum E_jump{Nr_nor, Nr_zero, Nr_180, Nr_inf, Nr_blind};
 
@@ -127,10 +128,10 @@ class Preprocess
   void oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void hesai_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
-  void give_feature(PointCloudXYZI &pl, vector<orgtype> &types);
-  void pub_func(PointCloudXYZI &pl, const ros::Time &ct);
+  void give_feature(PointCloudXYZI &pl, vector<orgtype> &types); //Used in FAST-LIO, in Point-LIO all the points are processed
+  void pub_func(PointCloudXYZI &pl, const ros::Time &ct); //Not used
   int  plane_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i, uint &i_nex, Eigen::Vector3d &curr_direct);
-  bool small_plane(const PointCloudXYZI &pl, vector<orgtype> &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct);
+  bool small_plane(const PointCloudXYZI &pl, vector<orgtype> &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct); //not used
   bool edge_jump_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i, Surround nor_dir);
   
   int group_size;

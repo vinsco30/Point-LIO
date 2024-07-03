@@ -1,4 +1,11 @@
 # Point-LIO
+
+**Branch for degenerancy check**
+New features added:
+1. Item Publish of the complete odometry message (added velocity);
+2. Item Added function ``` compute_metrics ``` where Fisher information matrix is computed (it doesn't work with livox lidars);
+3. Item Included topic publication of number of tracked points and state-error covariance trace;
+
 ## 1. Introduction
 
 **Important notes:**

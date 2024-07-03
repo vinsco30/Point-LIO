@@ -37,5 +37,6 @@ extern bool   scan_pub_en, scan_body_pub_en;
 extern shared_ptr<Preprocess> p_pre;
 extern double time_lag_imu_to_lidar;
 extern std::string uav_name;
+extern bool compute_degen;
 
 void readParameters(ros::NodeHandle &n);

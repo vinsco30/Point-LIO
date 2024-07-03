@@ -23,7 +23,6 @@
       <param name="cube_side_length" type="double" value="2000" /> <!--1000-->
       <param name="runtime_pos_log_enable" type="bool" value="0" /> <!--1-->
       <param name="uav_name" type="string" value="$(arg UAV_NAME)"/>
-      <param name="compute_degeneracy" type="bool" value="1"/>
       
         <!-- subscribers -->
       <remap from="/livox/lidar" to="$(arg node_prefix)livox/lidar" />
