@@ -83,6 +83,10 @@ geometry_msgs::PoseStamped msg_body_pose;
 // Frame names
 string init_frame;
 string odom_frame;
+// Reboot variables
+std::vector<double> init_pos, init_quat;
+double init_x, init_y, init_z;
+bool reboot;
 
 
 void SigHandle(int sig)
@@ -685,27 +689,54 @@ void publish_frame_body(const ros::Publisher & pubLaserCloudFull_body)
 template<typename T>
 void set_posestamp(T & out)
 {
-    if (!use_imu_as_input)
-    {
-        out.position.x = kf_output.x_.pos(0);
-        out.position.y = kf_output.x_.pos(1);
-        out.position.z = kf_output.x_.pos(2);
-        Eigen::Quaterniond q(kf_output.x_.rot);
-        out.orientation.x = q.coeffs()[0];
-        out.orientation.y = q.coeffs()[1];
-        out.orientation.z = q.coeffs()[2];
-        out.orientation.w = q.coeffs()[3];
+    if( reboot ) {
+        if (!use_imu_as_input)
+        {
+            out.position.x = kf_output.x_.pos(0)+init_x;
+            out.position.y = kf_output.x_.pos(1)+init_y;
+            out.position.z = kf_output.x_.pos(2)+init_z;
+            /*TODO: control this rotations!!!*/
+            Eigen::Quaterniond q(kf_output.x_.rot);
+            out.orientation.x = q.coeffs()[0];
+            out.orientation.y = q.coeffs()[1];
+            out.orientation.z = q.coeffs()[2];
+            out.orientation.w = q.coeffs()[3];
+        }
+        else
+        {   
+            out.position.x = kf_input.x_.pos(0)+init_x;
+            out.position.y = kf_input.x_.pos(1)+init_y;
+            out.position.z = kf_input.x_.pos(2)+init_z;
+            Eigen::Quaterniond q(kf_input.x_.rot);
+            out.orientation.x = q.coeffs()[0];
+            out.orientation.y = q.coeffs()[1];
+            out.orientation.z = q.coeffs()[2];
+            out.orientation.w = q.coeffs()[3];
+        }
     }
-    else
-    {
-        out.position.x = kf_input.x_.pos(0);
-        out.position.y = kf_input.x_.pos(1);
-        out.position.z = kf_input.x_.pos(2);
-        Eigen::Quaterniond q(kf_input.x_.rot);
-        out.orientation.x = q.coeffs()[0];
-        out.orientation.y = q.coeffs()[1];
-        out.orientation.z = q.coeffs()[2];
-        out.orientation.w = q.coeffs()[3];
+    else {    
+        if (!use_imu_as_input)
+        {
+            out.position.x = kf_output.x_.pos(0);
+            out.position.y = kf_output.x_.pos(1);
+            out.position.z = kf_output.x_.pos(2);
+            Eigen::Quaterniond q(kf_output.x_.rot);
+            out.orientation.x = q.coeffs()[0];
+            out.orientation.y = q.coeffs()[1];
+            out.orientation.z = q.coeffs()[2];
+            out.orientation.w = q.coeffs()[3];
+        }
+        else
+        {
+            out.position.x = kf_input.x_.pos(0);
+            out.position.y = kf_input.x_.pos(1);
+            out.position.z = kf_input.x_.pos(2);
+            Eigen::Quaterniond q(kf_input.x_.rot);
+            out.orientation.x = q.coeffs()[0];
+            out.orientation.y = q.coeffs()[1];
+            out.orientation.z = q.coeffs()[2];
+            out.orientation.w = q.coeffs()[3];
+        }
     }
 }
 
@@ -838,7 +869,7 @@ void compute_metrics( const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic
                         const Eigen::Matrix<double, 12, 12>& P_1, const Eigen::Matrix<double, 30, 30>& P_full, 
                         const Eigen::Matrix<double, 30, 30>& Fx, const Eigen::Matrix<double, 30, 30>& Fw,
                         const ros::Publisher& pubEigen, const ros::Publisher& pubTrace, const ros::Publisher& pubEigen2,
-                        Eigen::Matrix<double, 6, 6>& J_act ) {
+                        Eigen::Matrix<double, 6, 6>& J_act, int& points ) {
 
     std_msgs::Float32MultiArray msg_eigenvalue;
     std_msgs::Float32MultiArray msg_eigenvalue_J;
@@ -876,7 +907,7 @@ void compute_metrics( const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic
 
         std::vector<double> filtered_eig = lowPassFilter(eigen_ordered_J, 5);
         for(int i=0; i<6; i++) {
-            msg_eigenvalue.data.push_back(filtered_eig[i]);
+            msg_eigenvalue.data.push_back(filtered_eig[i]/points);
         }
         /*Iterative Fisher information Matrix (simplified)*/
         // Eigen::Matrix<double, 12, 12>  P_inv;
@@ -1015,7 +1046,7 @@ int main(int argc, char** argv)
     cout<<"lidar_type: "<<lidar_type<<endl;
     // init_frame = uav_name + "/" + "point_lio_init";
     /*TODO: check frames and add parameters for them*/
-    init_frame = uav_name + "uav1/local_origin"; //check the init frame to align with the one of the simulation
+    init_frame = uav_name + init_frame; //check the init frame to align with the one of the simulation
     odom_frame = uav_name + "/" + "point_lio_odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id = init_frame;
@@ -1150,7 +1181,7 @@ int main(int argc, char** argv)
     std_msgs::UInt16 n_points_msg;
 
     int _cnt = 0;
-
+    int n_points = 0;
     double m_noise = 0.1;
     Eigen::Matrix<double, 12, 12> R_inv;
     R_inv = (1/m_noise)*Eigen::MatrixXd::Identity(12,12);
@@ -1182,6 +1213,7 @@ int main(int argc, char** argv)
         }
         if( lidar_type != AVIA ) {
             n_points_msg.data = kf_output.get_n_points();
+            n_points = kf_output.get_n_points();
             n_points_pub.publish(n_points_msg);
         }
             
@@ -1196,7 +1228,7 @@ int main(int argc, char** argv)
             Fx = kf_output.get_F_x();
             Fw = kf_output.get_F_w();
             if( H.cols() == 12 )
-                compute_metrics(H, m_noise, P_red, P_up, Fx, Fw, eigen_pub, trace_pub, eigen_pub2, J);
+                compute_metrics(H, m_noise, P_red, P_up, Fx, Fw, eigen_pub, trace_pub, eigen_pub2, J, n_points);
         }
 
             

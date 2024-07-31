@@ -90,5 +90,12 @@ void readParameters(ros::NodeHandle &nh)
   nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
   nh.param<std::string>("uav_name", uav_name, "");
   nh.param<bool>("compute_degeneracy", compute_degen, false);
+  nh.param<std::string>("init_frame", init_frame,"");
+  nh.param<std::vector<double>>("init_pos", init_pos, std::vector<double>());
+  nh.param<std::vector<double>>("init_quat", init_quat, std::vector<double>());
+  nh.param<double>("init_x", init_x, 0.0);
+  nh.param<double>("init_y", init_y, 0.0);
+  nh.param<double>("init_z", init_z, 0.0);
+  nh.param<bool>("reboot", reboot, true);
 }
 

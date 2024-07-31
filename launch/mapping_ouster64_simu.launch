@@ -2,6 +2,12 @@
 <!-- Launch file for Ouster OS2-64 LiDAR -->
 
 	<arg name="rviz" default="false" />
+	<arg name="new_frame" default="uav1/local_origin"/>
+	<arg name="new_pos" default="[0.0, 0.0, 0.0]"/>
+	<arg name="new_quat" default="[0.0, 0.0, 0.0, 1.0]"/>
+	<arg name="new_x" default="0.0"/>
+	<arg name="new_y" default="0.0"/>
+	<arg name="new_z" default="0.0"/>
 
 	<node pkg="point_lio" type="pointlio_mapping" name="laserMapping" output="screen">
 	<rosparam command="load" file="$(find point_lio)/config/ouster64_simu.yaml" />
@@ -16,6 +22,13 @@
 	<param name="cube_side_length" type="double" value="1000" /> <!--2000-->
 	<param name="runtime_pos_log_enable" type="bool" value="0" /> <!--1-->
 	<param name="compute_degeneracy" type="bool" value="1"/>
+	<param name="init_frame" type="string" value="$(arg new_frame)"/>
+	<param name="init_pos" type="yaml" value="$(arg new_pos)"/>
+	<param name="init_quat" type="yaml" value="$(arg new_quat)"/>
+	<param name="init_x" type="double" value="$(arg new_x)"/>
+	<param name="init_y" type="double" value="$(arg new_y)"/>
+	<param name="init_z" type="double" value="$(arg new_z)"/>
+	<param name="reboot" type="bool" value="true"/>
 	</node>
 	<group if="$(arg rviz)">
 	<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find point_lio)/rviz_cfg/loam_livox.rviz" />

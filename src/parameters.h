@@ -38,5 +38,9 @@ extern shared_ptr<Preprocess> p_pre;
 extern double time_lag_imu_to_lidar;
 extern std::string uav_name;
 extern bool compute_degen;
+extern std::string init_frame;
+extern std::vector<double> init_pos, init_quat;
+extern double init_x, init_y, init_z; 
+extern bool reboot;
 
 void readParameters(ros::NodeHandle &n);
