@@ -683,6 +683,28 @@ void set_posestamp(T & out)
     }
 }
 
+/*Assign velocity values*/
+template<typename T>
+void set_velstamp(T & out) 
+{
+    if (!use_imu_as_input) 
+    {
+        out.linear.x = kf_output.x_.vel(0);
+        out.linear.y = kf_output.x_.vel(1);
+        out.linear.z = kf_output.x_.vel(2);
+        out.angular.x = kf_output.x_.omg(0);
+        out.angular.y = kf_output.x_.omg(1);
+        out.angular.z = kf_output.x_.omg(2);
+    }
+    else
+    {
+        out.linear.x = kf_input.x_.vel(0);
+        out.linear.y = kf_input.x_.vel(1);
+        out.linear.z = kf_input.x_.vel(2);
+        // out.angular.x = kf_input.x_.omega(0);
+    }
+}
+
 void publish_odometry(const ros::Publisher & pubOdomAftMapped)
 {
     odomAftMapped.header.frame_id = init_frame;
@@ -696,6 +718,7 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
         odomAftMapped.header.stamp = ros::Time().fromSec(lidar_end_time);
     }
     set_posestamp(odomAftMapped.pose.pose);
+    set_velstamp(odomAftMapped.twist.twist);
     
     pubOdomAftMapped.publish(odomAftMapped);
 

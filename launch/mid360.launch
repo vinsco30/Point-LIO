@@ -1,7 +1,7 @@
 <launch>
   <!-- Launch file for Livox MID360 LiDAR -->
 
-  <arg name="UAV_NAME"    default="$(env UAV_NAME)" />
+  <arg name="UAV_NAME"    default="uav1" />
   <arg name="rviz"        default="false" />
 
   <arg name="standalone"     default="true" />
@@ -51,8 +51,8 @@
       
       <!-- subscribers -->
       <!-- ======================= subscribers ====================== -->
-      <remap from="/livox/lidar" to="livox/lidar" />
-      <remap from="/livox/imu" to="livox/imu" />
+      <remap from="/livox/lidar" to="/livox/lidar" />
+      <remap from="/livox/imu" to="/livox/imu" />
 
       <!-- ======================= publishers ======================= -->
       <remap from="/cloud_registered" to="~cloud_registered" />
