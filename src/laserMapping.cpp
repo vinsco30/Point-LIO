@@ -242,7 +242,8 @@ void lasermap_fov_segment()
 }
 
 void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg) 
-{
+{   
+    // ROS_WARN("ENTRO nella CALLBACK");
     mtx_buffer.lock();
     scan_count ++;
     double preprocess_start_time = omp_get_wtime();
@@ -257,12 +258,13 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     }
 
     last_timestamp_lidar = msg->header.stamp.toSec();
-
+    // ROS_WARN("Dopo LIDAR TIME");
     PointCloudXYZI::Ptr  ptr(new PointCloudXYZI());
     PointCloudXYZI::Ptr  ptr_div(new PointCloudXYZI());
     double time_div = msg->header.stamp.toSec();
     p_pre->process(msg, ptr); //ptr is the pcl that comes from the preprocessing library that doesn't preprocess it! :)
     // std::cout<<"Punti in OUSTER: "<<ptr->size()<<std::endl;
+    // ROS_WARN("Dopo PREPROCESS");
     if (cut_frame)
     {
         sort(ptr->points.begin(), ptr->points.end(), time_list); //sorting points of the pcl
@@ -288,7 +290,8 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
             // ptr_div->clear();
             time_buffer.push_back(time_div);
         }
-    }
+        ROS_WARN("Dopo IF Grande");
+    } 
     else if (con_frame)
     {
         if (frame_ct == 0)
@@ -323,6 +326,7 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     s_plot11[scan_count] = omp_get_wtime() - preprocess_start_time;
     mtx_buffer.unlock();
     sig_buffer.notify_all();
+    // ROS_WARN("FINE CALLBACK");
 }
 
 void livox_pcl_cbk(const livox_ros_driver2::CustomMsg::ConstPtr &msg) 
@@ -1031,7 +1035,6 @@ void compute_metrics( const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic
 
     std_msgs::Float32 msg_trace;
     msg_trace.data = P_1.trace();
-
     pubEigen.publish(msg_eigenvalue);
     // ROS_INFO("Pubblico autovalori");
     pubEigen2.publish(msg_eigenvalue_J);
@@ -1046,7 +1049,8 @@ int main(int argc, char** argv)
     cout<<"lidar_type: "<<lidar_type<<endl;
     // init_frame = uav_name + "/" + "point_lio_init";
     /*TODO: check frames and add parameters for them*/
-    init_frame = uav_name + init_frame; //check the init frame to align with the one of the simulation
+    // init_frame = uav_name + init_frame; //check the init frame to align with the one of the simulation
+    init_frame = "uav1/vio_origin";
     odom_frame = uav_name + "/" + "point_lio_odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id = init_frame;
@@ -1230,8 +1234,7 @@ int main(int argc, char** argv)
             if( H.cols() == 12 )
                 compute_metrics(H, m_noise, P_red, P_up, Fx, Fw, eigen_pub, trace_pub, eigen_pub2, J, n_points);
         }
-
-            
+  
         // std::cout<<"Dimensione Lidar: "<<_cnt<<std::endl;
 
         cov_pub.publish(cov_msg);
@@ -1265,34 +1268,36 @@ int main(int argc, char** argv)
             // if (feats_undistort->empty() || feats_undistort == NULL)
             if (p_imu->imu_need_init_)
             {
+               
                 continue;
             }
             if(imu_en)
             {
                 if (!p_imu->gravity_align_)
-                {
+                {   
                     while (Measures.lidar_beg_time > imu_next.header.stamp.toSec())
                     {
                         imu_last = imu_next;
                         imu_next = *(imu_deque.front());
                         imu_deque.pop_front();
                         // imu_deque.pop();
+                        
                     }
                     if (non_station_start)
-                    {
+                    {   
                         state_in.gravity << VEC_FROM_ARRAY(gravity_init);
                         state_out.gravity << VEC_FROM_ARRAY(gravity_init);
                         state_out.acc << VEC_FROM_ARRAY(gravity_init);
                         state_out.acc *= -1;
                     }
                     else
-                    {
+                    {   
                         state_in.gravity =  -1 * p_imu->mean_acc * G_m_s2 / acc_norm; 
                         state_out.gravity = -1 * p_imu->mean_acc * G_m_s2 / acc_norm; 
                         state_out.acc = p_imu->mean_acc * G_m_s2 / acc_norm;
                     }
                     if (gravity_align)
-                    {
+                    {  
                         Eigen::Matrix3d rot_init;
                         p_imu->gravity_ << VEC_FROM_ARRAY(gravity);
                         p_imu->Set_init(state_in.gravity, rot_init);

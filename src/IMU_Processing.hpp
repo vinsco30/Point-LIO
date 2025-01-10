@@ -77,12 +77,12 @@ void ImuProcess::Reset()
 }
 
 void ImuProcess::IMU_init(const MeasureGroup &meas, int &N)
-{
+{ 
   /** 1. initializing the gravity, gyro bias, acc and gyro covariance
    ** 2. normalize the acceleration measurenments to unit gravity **/
   ROS_INFO("IMU Initializing: %.1f %%", double(N) / MAX_INI_COUNT * 100);
   V3D cur_acc, cur_gyr;
-  
+
   if (b_first_frame_)
   {
     Reset();
@@ -106,6 +106,7 @@ void ImuProcess::IMU_init(const MeasureGroup &meas, int &N)
 
     N ++;
   }
+  ROS_WARN("Arrivo alla FINE dell'IMU INITIALIZER");
 }
 
 void ImuProcess::Process(const MeasureGroup &meas, PointCloudXYZI::Ptr cur_pcl_un_)

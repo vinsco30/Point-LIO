@@ -12,7 +12,7 @@ using namespace std;
 typedef pcl::PointXYZINormal PointType;
 typedef pcl::PointCloud<PointType> PointCloudXYZI;
 
-enum LID_TYPE{AVIA = 1, VELO16, OUST64, HESAIxt32}; //{1, 2, 3, 4}
+enum LID_TYPE{AVIA = 1, VELO16, OUST64, HESAIxt32, UNITREEL1}; //{1, 2, 3, 4}
 enum TIME_UNIT{SEC = 0, MS = 1, US = 2, NS = 3};
 //POSSIBLE FEATURES: Normal - Possible Plane - Real Plane - Edge Jump(?) - Edge Plane(?) - Wire - ZeroPoint
 enum Feature{Nor, Poss_Plane, Real_Plane, Edge_Jump, Edge_Plane, Wire, ZeroPoint}; 
@@ -113,6 +113,19 @@ namespace unreal_lidar_ros {
   };
 }  // namespace ouster_ros
 
+namespace unitree_lidar_ros {
+  struct EIGEN_ALIGN16 Point {
+    PCL_ADD_POINT4D;
+    float intensity;
+    // uint32_t t;
+    // uint16_t reflectivity;
+    // uint8_t  ring;
+    // uint16_t ambient;
+    // uint32_t range;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
+}
+
 class Preprocess
 {
   public:
@@ -142,6 +155,7 @@ class Preprocess
   void velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void hesai_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void unreal_lidar_handler( const sensor_msgs::PointCloud2::ConstPtr &msg );
+  void unitree_li1_handler( const sensor_msgs::PointCloud2::ConstPtr &msg );
   void give_feature(PointCloudXYZI &pl, vector<orgtype> &types); //Used in FAST-LIO, in Point-LIO all the points are processed
   void pub_func(PointCloudXYZI &pl, const ros::Time &ct); //Not used
   int  plane_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i, uint &i_nex, Eigen::Vector3d &curr_direct);
