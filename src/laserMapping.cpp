@@ -1049,8 +1049,8 @@ int main(int argc, char** argv)
     cout<<"lidar_type: "<<lidar_type<<endl;
     // init_frame = uav_name + "/" + "point_lio_init";
     /*TODO: check frames and add parameters for them*/
-    // init_frame = uav_name + init_frame; //check the init frame to align with the one of the simulation
-    init_frame = "uav1/vio_origin";
+    init_frame = uav_name + init_frame; //check the init frame to align with the one of the simulation
+    // init_frame = "uav1/vio_origin";
     odom_frame = uav_name + "/" + "point_lio_odom";
     path.header.stamp    = ros::Time().fromSec(lidar_end_time);
     path.header.frame_id = init_frame;
